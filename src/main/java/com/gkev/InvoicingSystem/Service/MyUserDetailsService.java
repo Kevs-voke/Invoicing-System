@@ -2,6 +2,7 @@ package com.gkev.InvoicingSystem.Service;
 
 import com.gkev.InvoicingSystem.models.DTO.UserWithRolesDTO;
 import com.gkev.InvoicingSystem.models.UserPrincipal;
+import com.gkev.InvoicingSystem.models.entity.RolesEntity;
 import com.gkev.InvoicingSystem.models.repo.RolesRepo;
 import com.gkev.InvoicingSystem.models.repo.UserRolesRepo;
 import com.gkev.InvoicingSystem.models.repo.UsersRepo;
@@ -12,6 +13,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @RequiredArgsConstructor
 @Service
@@ -38,5 +41,14 @@ public class MyUserDetailsService implements ReactiveUserDetailsService {
                                 .collectList()
                                 .map(roles -> new UserWithRolesDTO(user, roles))
                 );
+    }
+    public Mono<List<RolesEntity>> findRolesByemail(String email) {
+        return usersRepo.findByEmail(email)
+                .flatMap(user ->
+                        userRoleRepo.findAllByUserId(user.getId())
+                                .flatMap(userRoles ->
+                                        roleRepo.findById(userRoles.getRoleId())
+                                )
+                                .collectList());
     }
 }

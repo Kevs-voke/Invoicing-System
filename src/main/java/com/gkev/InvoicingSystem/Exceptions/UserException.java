@@ -1,18 +1,17 @@
 package com.gkev.InvoicingSystem.Exceptions;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+@Getter
 @RequiredArgsConstructor
 public class UserException extends RuntimeException {
-   private final String ErrorCode;
-   private final static Logger logger = LoggerFactory.getLogger(UserException.class);
-   public UserException(String ErrorCode, String message ) {
+
+    private final String errorCode;
+
+    public UserException(String errorCode, String message) {
         super(message);
-        this.ErrorCode = ErrorCode;
-        logger.error(message );
-
-
+        this.errorCode = errorCode;
     }
+
 }
