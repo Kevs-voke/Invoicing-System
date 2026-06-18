@@ -49,7 +49,7 @@ public class AuthController {
                 .secure(false)
                 .path("/")
                 .maxAge(Duration.ofHours(24))
-                .sameSite("None")
+                .sameSite("Lax")
                 .build();
 
         HttpHeaders headers = new HttpHeaders();

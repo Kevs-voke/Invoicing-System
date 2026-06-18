@@ -68,7 +68,7 @@ public class UserService {
         return usersRepo.existsByEmail(email)
                 .flatMap(emailExists -> {
                     if (emailExists) {
-                        return Mono.error(()-> new UserException("User " + email + " Already Exists", "USER_EXISTS"));
+                        return Mono.error(()-> new UserException("User Already Exists", "USER_EXISTS"));
                     }
                     logger.info("Email is valid to be registered with: {}", email);
                     return Mono.empty();
