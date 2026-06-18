@@ -1,10 +1,13 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE SEQUENCE IF NOT EXISTS user_no_seq
+START WITH 100000;
+
 CREATE TABLE IF NOT EXISTS users (
 
 -- remote    id UUID PRIMARY KEY DEFAULT gen_random_uuid_v7(),
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_no VARCHAR UNIQUE NOT NULL
-    DEFAULT encode(gen_random_bytes(12), 'base64url'),
+    user_no BIGINT UNIQUE NOT NULL DEFAULT nextval('user_no_seq'),
     email VARCHAR(40) UNIQUE NOT NULL,
     first_name VARCHAR(50),
     last_name VARCHAR(50),
@@ -15,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
     disabled BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW()
     );
-
+ALTER SEQUENCE user_no_seq OWNED BY users.user_no;
 CREATE TABLE IF NOT EXISTS roles(
     id BIGSERIAL PRIMARY KEY,
     role_name VARCHAR(10) NOT NULL

@@ -1,7 +1,6 @@
 package com.gkev.InvoicingSystem.Service;
 
 import com.gkev.InvoicingSystem.Exceptions.UserException;
-import com.gkev.InvoicingSystem.models.DTO.LoginResApiDTO;
 import com.gkev.InvoicingSystem.models.DTO.LoginResponseDTO;
 import com.gkev.InvoicingSystem.models.DTO.CusRegDTO;
 import com.gkev.InvoicingSystem.models.DTO.LoginReqDTO;
@@ -56,7 +55,7 @@ public class UserService {
                                 )
                                 .flatMap(userWithRoles -> {
                                  String jwtToken = jwt.generateToken(userWithRoles.getT1(), userWithRoles.getT2());
-                                    return Mono.just(new LoginResponseDTO(userWithRoles.getT1().getEmail(), userWithRoles.getT2(),jwtToken))
+                                    return Mono.just(new LoginResponseDTO(userWithRoles.getT1().getFirstName(), userWithRoles.getT2(),jwtToken))
                                             .doOnSuccess(response -> logger.info("User: {} successfully registered",
                                                     userWithRoles.getT1().getEmail()));
                                 })));
@@ -114,7 +113,7 @@ public class UserService {
                                 String jwtToken = jwt.generateToken(user, roleNames);
 
                                 return new LoginResponseDTO(
-                                        user.getEmail(),
+                                        user.getFirstName(),
                                         roleNames,
                                         jwtToken
 

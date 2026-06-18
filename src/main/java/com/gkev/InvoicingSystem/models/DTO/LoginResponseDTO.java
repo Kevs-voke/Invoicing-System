@@ -3,7 +3,7 @@ package com.gkev.InvoicingSystem.models.DTO;
 import java.util.List;
 
 public record LoginResponseDTO(
-        String email,
+        String firstName,
         List<String> roles,
         String jwtToken
 ) {

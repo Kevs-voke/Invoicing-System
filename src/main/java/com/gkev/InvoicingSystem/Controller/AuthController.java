@@ -27,7 +27,7 @@ public class AuthController {
                 .map(authResponse -> ResponseEntity.ok()
                         .headers(buildCookieHeaders(authResponse.jwtToken()))
                         .body(new LoginResApiDTO(
-                                authResponse.email(),
+                                authResponse.firstName(),
                                 authResponse.roles()
                         ))
                 );
@@ -38,7 +38,7 @@ public class AuthController {
                 .map( loginResponse ->
                         ResponseEntity.ok()
                                 .headers(buildCookieHeaders(loginResponse.jwtToken()))
-                                .body(new LoginResApiDTO(loginResponse.email(),
+                                .body(new LoginResApiDTO(loginResponse.firstName(),
                                         loginResponse.roles()))
                 );
     }

@@ -3,6 +3,6 @@ package com.gkev.InvoicingSystem.models.DTO;
 import java.util.List;
 
 public record LoginResApiDTO(
-        String email,
+        String firstName,
         List<String> roles
 ) { }
