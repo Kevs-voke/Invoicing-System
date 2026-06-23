@@ -72,6 +72,23 @@ public class UserService {
 
     }
 
+    public Mono<String> createCustomer(CusRegDTO cusRegDTO){
+        logger.info("Registering new customer: {} has started", cusRegDTO.email());
+        List<String> roles = new ArrayList<>();
+        return registerUserhelper(cusRegDTO, roles )
+                .flatMap(response -> {
+
+                            String email = response.getT1().getEmail();
+                            return Mono.just(email)
+                                    .doOnSuccess(userEmail -> logger.info("Customer {} has been registered", userEmail));
+
+                        }
+                );
+
+
+    }
+
+
     private Mono<Tuple2<UsersEntity, List<String>>> registerUserhelper(CusRegDTO cusRegDTO, List<String> roles) {
         return transactionalOperator.transactional(
                 validateEmail(cusRegDTO.email())

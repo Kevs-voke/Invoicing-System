@@ -1,7 +1,7 @@
 package com.gkev.InvoicingSystem.Controller;
 
 import com.gkev.InvoicingSystem.Service.UserService;
-import com.gkev.InvoicingSystem.models.DTO.UserRegDTO;
+import com.gkev.InvoicingSystem.models.DTO.CusRegDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,8 +20,8 @@ public class CustomerController {
 
     @GetMapping("/register")
     @PreAuthorize("hasRole('MANAGER')")
-    public Mono<ResponseEntity<String>> registerNewCustomer(UserRegDTO userRegDTO) {
-        return userService.registerUser(userRegDTO)
+    public Mono<ResponseEntity<String>> registerNewCustomer(CusRegDTO cusRegDTO) {
+        return userService.createCustomer(cusRegDTO)
                 .map(user -> ResponseEntity.status(HttpStatus.CREATED)
                         .body(user)
                 );
