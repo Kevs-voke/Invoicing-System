@@ -4,6 +4,7 @@ import com.gkev.InvoicingSystem.Exceptions.UserException;
 import com.gkev.InvoicingSystem.models.DTO.LoginResponseDTO;
 import com.gkev.InvoicingSystem.models.DTO.CusRegDTO;
 import com.gkev.InvoicingSystem.models.DTO.LoginReqDTO;
+import com.gkev.InvoicingSystem.models.DTO.UserRegDTO;
 import com.gkev.InvoicingSystem.models.Mapper.CusRegMapper;
 import com.gkev.InvoicingSystem.models.entity.RolesEntity;
 import com.gkev.InvoicingSystem.models.entity.UserWithRolesEntity;
@@ -19,8 +20,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,29 +41,50 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final MyUserDetailsService myUserDetailsService;
 
+    public Mono<LoginResponseDTO> CustSelfReg(CusRegDTO cusRegDTO) {
+        logger.info("Registering new CUSTOMER: {} has started", cusRegDTO.email());
+        List<String> roles = new ArrayList<>();
+        roles.add("CUSTOMER");
+        return registerUserhelper(cusRegDTO, roles )
+                .flatMap(userWithRoles -> {
+                    String jwtToken = jwt.generateToken(userWithRoles.getT1(), userWithRoles.getT2());
+                    return Mono.just(new LoginResponseDTO(
+                            userWithRoles.getT1().getFirstName(),
+                            userWithRoles.getT2(),
+                            jwtToken
+                    )).doOnSuccess(response ->
+                            logger.info("User: {} successfully registered", userWithRoles.getT1().getEmail())
+                    );
+                });
+    }
+    public Mono<String> registerUser(UserRegDTO userRegDTO){
+        logger.info("Registering new user: {} has started", userRegDTO.cusRegDTO().email());
+        return registerUserhelper(userRegDTO.cusRegDTO(), userRegDTO.roles())
+                .flatMap(response -> {
 
-    public Mono<LoginResponseDTO> registerCust(CusRegDTO cusRegDTO) {
-        logger.info("Registering new CUSTOMER: {} has started ", cusRegDTO.email());
+                  String email = response.getT1().getEmail();
+                  return Mono.just(email)
+                          .doOnSuccess(userEmail -> logger.info("User {} has been registered", userEmail));
 
+                }
+                );
+
+
+    }
+
+    private Mono<Tuple2<UsersEntity, List<String>>> registerUserhelper(CusRegDTO cusRegDTO, List<String> roles) {
         return transactionalOperator.transactional(
                 validateEmail(cusRegDTO.email())
                         .then(Mono.defer(() -> {
                             UsersEntity user = cusRegMapper.toUserEntity(cusRegDTO);
                             user.setPassword(passwordEncoder.encode(cusRegDTO.password()));
                             return usersRepo.save(user);
-                        })
-                                .flatMap(savedUser ->
-                                        saveRoles(savedUser.getId(), List.of("CUSTOMER"), savedUser.getEmail())
-                                                .map(savedRoles -> Tuples.of(savedUser, savedRoles))
-                                )
-                                .flatMap(userWithRoles -> {
-                                 String jwtToken = jwt.generateToken(userWithRoles.getT1(), userWithRoles.getT2());
-                                    return Mono.just(new LoginResponseDTO(userWithRoles.getT1().getFirstName(), userWithRoles.getT2(),jwtToken))
-                                            .doOnSuccess(response -> logger.info("User: {} successfully registered",
-                                                    userWithRoles.getT1().getEmail()));
-                                })));
-
-
+                        }))
+                        .flatMap(savedUser ->
+                                saveRoles(savedUser.getId(), roles, savedUser.getEmail())
+                                        .map(savedRoles -> Tuples.of(savedUser, savedRoles))
+                        )
+        );
     }
     private Mono<Void> validateEmail(String email) {
         logger.info("Validating email: {}", email);
@@ -94,7 +118,7 @@ public class UserService {
                 .thenReturn((List<String>) roles);
     }
 
-    public Mono<LoginResponseDTO> loginCust(LoginReqDTO loginReqDTO) {
+    public Mono<LoginResponseDTO> loginUser(LoginReqDTO loginReqDTO) {
         logger.info("Login attempt for  customer: {} has started ", loginReqDTO.email());
         return usersRepo.findByEmail(loginReqDTO.email())
                 .switchIfEmpty(Mono.error(() -> new UserException("Invalid email or password", "INVALID_CREDENTIALS")))

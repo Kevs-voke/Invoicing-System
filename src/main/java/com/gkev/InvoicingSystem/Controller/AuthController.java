@@ -7,23 +7,23 @@ import com.gkev.InvoicingSystem.models.DTO.LoginReqDTO;
 import com.gkev.InvoicingSystem.models.DTO.LoginResApiDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
+import static com.gkev.InvoicingSystem.Utils.CookieHeaderBuilderUtils.buildCookieHeaders;
+
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
-    private  final UserService userService;
+    private final UserService userService;
 
     @PostMapping("/register")
-    public Mono<ResponseEntity<LoginResApiDTO>> login(@Valid @RequestBody CusRegDTO cusRegDTO) {
-        return userService.registerCust(cusRegDTO)
+    public Mono<ResponseEntity<LoginResApiDTO>> userSelfReg(@Valid @RequestBody CusRegDTO cusRegDTO) {
+        return userService.CustSelfReg(cusRegDTO)
                 .map(authResponse -> ResponseEntity.ok()
                         .headers(buildCookieHeaders(authResponse.jwtToken()))
                         .body(new LoginResApiDTO(
@@ -32,28 +32,16 @@ public class AuthController {
                         ))
                 );
     }
+
     @PostMapping("/login")
     public Mono<ResponseEntity<LoginResApiDTO>> login(@Valid @RequestBody LoginReqDTO loginReqDTO) {
-        return userService.loginCust(loginReqDTO)
-                .map( loginResponse ->
+        return userService.loginUser(loginReqDTO)
+                .map(loginResponse ->
                         ResponseEntity.ok()
                                 .headers(buildCookieHeaders(loginResponse.jwtToken()))
                                 .body(new LoginResApiDTO(loginResponse.firstName(),
                                         loginResponse.roles()))
                 );
     }
-
-    private HttpHeaders buildCookieHeaders(String token) {
-        ResponseCookie cookie = ResponseCookie.from("auth_token", token)
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .maxAge(Duration.ofHours(24))
-                .sameSite("Lax")
-                .build();
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.SET_COOKIE, cookie.toString());
-        return headers;
-    }
 }
+

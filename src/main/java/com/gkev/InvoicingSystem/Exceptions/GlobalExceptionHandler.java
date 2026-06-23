@@ -14,6 +14,8 @@ import reactor.core.publisher.Mono;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
+
     @ExceptionHandler(UserException.class)
     public Mono<ResponseEntity<ErrorResponseDTO>> handleUserException(UserException e) {
 
