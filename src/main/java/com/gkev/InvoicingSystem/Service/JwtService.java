@@ -1,6 +1,5 @@
 package com.gkev.InvoicingSystem.Service;
 
-import com.gkev.InvoicingSystem.models.entity.RolesEntity;
 import com.gkev.InvoicingSystem.models.entity.UsersEntity;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
