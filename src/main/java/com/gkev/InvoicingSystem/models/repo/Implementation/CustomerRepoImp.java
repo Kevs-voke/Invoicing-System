@@ -32,7 +32,7 @@ public class CustomerRepoImp implements CustomerRepo {
                      inv.total,
                      inv.due_date
                  FROM users usr
-                 JOIN invoices inv ON inv.cust_id = usr.id
+                 JOIN invoice inv ON inv.cust_id = usr.id
                   WHERE 1=1
                 
                 """);
@@ -67,7 +67,7 @@ public class CustomerRepoImp implements CustomerRepo {
         }
 
         sql.append("""
-                ORDER BY
+                 ORDER BY
                 CASE
                     WHEN inv.status = 'overdue' THEN 1
                     WHEN inv.status = 'pending' THEN 2

@@ -35,4 +35,21 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(response));
     }
+
+    @ExceptionHandler(ResourceNotFound.class)
+    public Mono<ResponseEntity<ErrorResponseDTO>> handleResourceNotFound(ResourceNotFound e) {
+        logger.error("ResourceNotFound occurred, code= {}, message={}",
+                e.getErrorCode(),e.getMessage());
+
+        ErrorResponseDTO response = new ErrorResponseDTO(
+                e.getErrorCode(),
+                e.getMessage()
+
+        );
+        return Mono.just(ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(response));
+
+    }
+
 }
