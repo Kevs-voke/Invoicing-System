@@ -14,7 +14,7 @@
         @Id
         private UUID id;
         @Column("user_no")
-        private String userNo;
+        private Long userNo;
        @Column("first_name")
         private String firstName;
        @Column("last_name")
