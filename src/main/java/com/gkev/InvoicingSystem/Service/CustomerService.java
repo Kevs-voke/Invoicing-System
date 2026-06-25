@@ -21,7 +21,7 @@ public class CustomerService {
 
     public Flux<CustomerInvoiceResDTO> findCustomers(CusFilterDTO filter, int page, int size) {
         logger.info("querying customers records");
-        return customerRepo.findCustomers(filter, size, page )
+        return customerRepo.findCustomers(filter, page, size )
                 .switchIfEmpty(Mono.error(() -> new ResourceNotFound("NOT_FOUND", "Records could not be found")))
                 .doOnComplete(() -> logger.info("records found "));
     }
