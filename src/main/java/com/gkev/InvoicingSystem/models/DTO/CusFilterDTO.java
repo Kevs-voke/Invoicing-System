@@ -8,7 +8,7 @@ import java.time.LocalDate;
 public record CusFilterDTO(
         String email,
         String phoneNumber,
-        String customerNo,
+        Long customerNo,
 
         Long invoiceNo,
         String status,
@@ -45,7 +45,7 @@ public record CusFilterDTO(
     }
 
     public boolean hasCustomerNo() {
-        return customerNo != null && !customerNo.isBlank();
+        return customerNo != null ;
     }
 
     public boolean hasUserInfo() {
