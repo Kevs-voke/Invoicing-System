@@ -8,7 +8,7 @@ import java.time.LocalDate;
 public record CusFilterDTO(
         String email,
         String phoneNumber,
-        String customerNo,
+        Long customerNo,
 
         Long invoiceNo,
         String status,
