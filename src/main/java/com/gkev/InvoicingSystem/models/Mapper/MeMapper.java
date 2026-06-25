@@ -8,8 +8,8 @@ public class MeMapper {
       return new MeDTO(
               user.getFirstName(),
               user.getLastName(),
-              user.getEmail(),
               user.getPhoneNumber(),
+              user.getEmail(),
               user.getUserNo()
       );
   }
