@@ -32,7 +32,7 @@ public class CustomerRepoImp implements CustomerRepo {
                      inv.total,
                      inv.due_date
                  FROM users usr
-                 JOIN invoice inv ON inv.cust_id = usr.id
+                 LEFT JOIN invoice inv ON inv.cust_id = usr.id
                   WHERE 1=1
                 
                 """);

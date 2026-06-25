@@ -38,7 +38,7 @@ public class CustomerController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size){
 
-        return customerService.findCustomers(filter, size, page)
+        return customerService.findCustomers(filter, page, size)
                 .collectList()
                 .map(ResponseEntity::ok);
     }}
