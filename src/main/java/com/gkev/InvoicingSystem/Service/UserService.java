@@ -1,11 +1,9 @@
 package com.gkev.InvoicingSystem.Service;
 
 import com.gkev.InvoicingSystem.Exceptions.UserException;
-import com.gkev.InvoicingSystem.models.DTO.LoginResponseDTO;
-import com.gkev.InvoicingSystem.models.DTO.CusRegDTO;
-import com.gkev.InvoicingSystem.models.DTO.LoginReqDTO;
-import com.gkev.InvoicingSystem.models.DTO.UserRegDTO;
+import com.gkev.InvoicingSystem.models.DTO.*;
 import com.gkev.InvoicingSystem.models.Mapper.CusRegMapper;
+import com.gkev.InvoicingSystem.models.Mapper.MeMapper;
 import com.gkev.InvoicingSystem.models.entity.RolesEntity;
 import com.gkev.InvoicingSystem.models.entity.UserWithRolesEntity;
 import com.gkev.InvoicingSystem.models.entity.UsersEntity;
@@ -35,7 +33,7 @@ public class UserService {
     private final UsersRepo usersRepo;
     private final RolesRepo rolesRepo;
     private final UserRolesRepo userRolesRepo;
-    private  final JwtService jwt;
+    private final JwtService jwt;
     private final TransactionalOperator transactionalOperator;
     private final CusRegMapper cusRegMapper;
     private final PasswordEncoder passwordEncoder;
@@ -45,7 +43,7 @@ public class UserService {
         logger.info("Registering new CUSTOMER: {} has started", cusRegDTO.email());
         List<String> roles = new ArrayList<>();
         roles.add("CUSTOMER");
-        return registerUserhelper(cusRegDTO, roles )
+        return registerUserhelper(cusRegDTO, roles)
                 .flatMap(userWithRoles -> {
                     String jwtToken = jwt.generateToken(userWithRoles.getT1(), userWithRoles.getT2());
                     return Mono.just(new LoginResponseDTO(
@@ -57,25 +55,26 @@ public class UserService {
                     );
                 });
     }
-    public Mono<String> registerUser(UserRegDTO userRegDTO){
+
+    public Mono<String> registerUser(UserRegDTO userRegDTO) {
         logger.info("Registering new user: {} has started", userRegDTO.cusRegDTO().email());
         return registerUserhelper(userRegDTO.cusRegDTO(), userRegDTO.roles())
                 .flatMap(response -> {
 
-                  String email = response.getT1().getEmail();
-                  return Mono.just(email)
-                          .doOnSuccess(userEmail -> logger.info("User {} has been registered", userEmail));
+                            String email = response.getT1().getEmail();
+                            return Mono.just(email)
+                                    .doOnSuccess(userEmail -> logger.info("User {} has been registered", userEmail));
 
-                }
+                        }
                 );
 
 
     }
 
-    public Mono<String> createCustomer(CusRegDTO cusRegDTO){
+    public Mono<String> createCustomer(CusRegDTO cusRegDTO) {
         logger.info("Registering new customer: {} has started", cusRegDTO.email());
         List<String> roles = new ArrayList<>();
-        return registerUserhelper(cusRegDTO, roles )
+        return registerUserhelper(cusRegDTO, roles)
                 .flatMap(response -> {
 
                             String email = response.getT1().getEmail();
@@ -103,19 +102,20 @@ public class UserService {
                         )
         );
     }
+
     private Mono<Void> validateEmail(String email) {
         logger.info("Validating email: {}", email);
         return usersRepo.existsByEmail(email)
                 .flatMap(emailExists -> {
                     if (emailExists) {
-                        return Mono.error(()-> new UserException("User Already Exists", "USER_EXISTS"));
+                        return Mono.error(() -> new UserException("User Already Exists", "USER_EXISTS"));
                     }
                     logger.info("Email is valid to be registered with: {}", email);
                     return Mono.empty();
                 });
     }
 
-    private Mono<List<String>> saveRoles (UUID userId, Iterable<String> roles, String email) {
+    private Mono<List<String>> saveRoles(UUID userId, Iterable<String> roles, String email) {
         logger.info("Saving roles for user: {}", email);
         return Flux.fromIterable(roles)
                 .flatMap(roleName ->
@@ -165,5 +165,13 @@ public class UserService {
                             .doOnError(response -> logger.info("User: {} failed to login", loginReqDTO.email()));
 
                 });
+    }
+
+    public Mono<MeDTO> getMe(UUID userId) {
+        logger.info("Querying user: {}", userId);
+        return usersRepo.findById(userId)
+                .map(MeMapper::toMeDto)
+                .switchIfEmpty(Mono.error(() -> new UserException("User not found", "USER_NOT_FOUND")))
+                .doOnSuccess(response -> logger.info("User: {} has been successfully queried ", userId));
     }
 }
