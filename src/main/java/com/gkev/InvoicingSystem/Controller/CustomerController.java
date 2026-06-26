@@ -4,6 +4,7 @@ import com.gkev.InvoicingSystem.Service.CustomerService;
 import com.gkev.InvoicingSystem.Service.UserService;
 import com.gkev.InvoicingSystem.models.DTO.CusFilterDTO;
 import com.gkev.InvoicingSystem.models.DTO.CusRegDTO;
+import com.gkev.InvoicingSystem.models.DTO.CustDashboardStatsDTO;
 import com.gkev.InvoicingSystem.models.DTO.CustomerInvoiceResDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -41,4 +42,11 @@ public class CustomerController {
         return customerService.findCustomers(filter, page, size)
                 .collectList()
                 .map(ResponseEntity::ok);
-    }}
+    }
+    @GetMapping("/dashboard")
+    public Mono<ResponseEntity<CustDashboardStatsDTO>> getCustomers(){
+        return customerService
+                .getCustDashboardStats()
+                .map(ResponseEntity::ok);
+    }
+}

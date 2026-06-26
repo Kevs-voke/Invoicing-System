@@ -15,5 +15,6 @@ public record CustomerInvoiceResDTO(
         String status,
         BigDecimal total,
         LocalDate dueDate
+//        total should be dues or balance .
 ) {
 }
