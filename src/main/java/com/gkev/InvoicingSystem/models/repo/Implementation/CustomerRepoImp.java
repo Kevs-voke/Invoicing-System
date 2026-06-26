@@ -21,6 +21,7 @@ public class CustomerRepoImp implements CustomerRepo {
 
     @Override
     public Flux<CustomerInvoiceResDTO> findCustomers(CusFilterDTO filter, int page, int size) {
+//        As total returns balance or dues  didn't change naming since it may lead to refactor frontend
         StringBuilder sql = new StringBuilder("""
                 
                 SELECT
@@ -29,7 +30,7 @@ public class CustomerRepoImp implements CustomerRepo {
                      usr.phone_number,
                      inv.invoice_no,
                      inv.status,
-                     inv.total,
+                   (inv.total - inv.amount_paid) AS total,
                      inv.due_date
                  FROM users usr
                  LEFT JOIN invoice inv ON inv.cust_id = usr.id
