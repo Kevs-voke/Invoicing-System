@@ -29,16 +29,18 @@ public interface UsersRepo extends ReactiveCrudRepository<UsersEntity, UUID> {
         ) AS newCustomers,
 
         (
-            SELECT SUM(total - amount_paid)
+            SELECT COALESCE(SUM(total - amount_paid), 0)
             FROM invoice
             WHERE status IN ('PENDING', 'OVERDUE')
         ) AS totalReceivables,
 
         (
-            SELECT SUM(total - amount_paid)
+            SELECT COALESCE(SUM(total - amount_paid), 0)
             FROM invoice
             WHERE status = 'OVERDUE'
         ) AS totalOverdue
+
+    FROM (VALUES(1)) AS dummy(x)
 """)
     Mono<CustDashboardStatsDTO> getDashboardStats();
 }
