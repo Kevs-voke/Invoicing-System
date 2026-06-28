@@ -74,6 +74,7 @@ public class UserService {
     public Mono<String> createCustomer(CusRegDTO cusRegDTO) {
         logger.info("Registering new customer: {} has started", cusRegDTO.email());
         List<String> roles = new ArrayList<>();
+        roles.add("CUSTOMER");
         return registerUserhelper(cusRegDTO, roles)
                 .flatMap(response -> {
 
