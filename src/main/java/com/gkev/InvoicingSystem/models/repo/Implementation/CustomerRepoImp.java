@@ -26,16 +26,19 @@ public class CustomerRepoImp implements CustomerRepo {
         StringBuilder sql = new StringBuilder("""
                 
                 SELECT
-                     usr.user_no,
-                     usr.email,
-                     usr.phone_number,
-                     inv.invoice_no,
-                     inv.status,
-                   (inv.total - inv.amount_paid) AS total,
-                     inv.due_date
-                 FROM users usr
-                 LEFT JOIN invoice inv ON inv.cust_id = usr.id
-                  WHERE 1=1
+                    usr.user_no,
+                    usr.email,
+                    usr.phone_number,
+                    inv.invoice_no,
+                    inv.status,
+                    (inv.total - inv.amount_paid) AS total,
+                    inv.due_date
+                FROM users usr
+                INNER JOIN user_with_roles uw ON uw.user_id = usr.id
+                INNER JOIN roles r ON r.id = uw.role_id
+                LEFT JOIN invoice inv ON inv.cust_id = usr.id
+                WHERE r.role_name = 'CUSTOMER'
+                AND 1=1
                 
                 """);
         Map<String, Object> params = new HashMap<>();

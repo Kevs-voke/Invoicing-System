@@ -32,7 +32,7 @@ public class CustomerService {
     public Mono<CustDashboardStatsDTO> getCustDashboardStats( ){
         logger.info("querying Customer Dashboard Stats");
         return usersRepo
-                .getDashboardStats()
+                .getCustomerDashboardStats()
                 .switchIfEmpty(Mono.error(() -> new ResourceNotFound("NOT_FOUND", "Dashboard Stats could not be found"))
                 )
                 .doOnSuccess(response -> logger.info("Dashboard Stats records found "));

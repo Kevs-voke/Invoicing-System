@@ -1,19 +1,20 @@
 package com.gkev.InvoicingSystem.models.DTO;
 
 import org.springframework.beans.factory.annotation.Value;
-
+import org.springframework.data.relational.core.mapping.Column;
 import java.math.BigDecimal;
 
-public interface CustDashboardStatsDTO {
-    @Value("#{target.total_customers}")
-    int totalCustomers();
+public record CustDashboardStatsDTO(
 
-    @Value("#{target.new_customers}")
-    int newCustomers();
+    @Column("total_customers")
+    Integer totalCustomers,
 
-    @Value("#{target.total_receivables}")
-    BigDecimal totalReceivables();
+    @Column("new_customers")
+    Integer newCustomers,
 
-    @Value("#{target.total_overdue}")
-    BigDecimal totalOverdue();
-}
+    @Column("total_receivables")
+    BigDecimal totalReceivables,
+
+    @Column("total_overdue")
+    BigDecimal totalOverdue
+) {}
