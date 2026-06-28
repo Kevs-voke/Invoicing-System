@@ -20,10 +20,13 @@ public interface UsersRepo extends ReactiveCrudRepository<UsersEntity, UUID> {
          JOIN roles r ON r.id = uw.role_id
          WHERE r.role_name = 'CUSTOMER') AS total_customers,
 
-        (SELECT COUNT(*)
-         FROM users
-         WHERE created_at::DATE = CURRENT_DATE) AS new_customers,
-
+        (SELECT COUNT(u.id)
+        FROM users u
+        JOIN user_with_roles uw ON uw.user_id = u.id
+        JOIN roles r ON r.id = uw.role_id
+        WHERE r.role_name = 'CUSTOMER'
+        AND u.created_at::DATE = CURRENT_DATE) AS new_customers,
+        
         (SELECT COALESCE(SUM(total - amount_paid), 0)
          FROM invoice
          WHERE status IN ('PENDING', 'OVERDUE')) AS total_receivables,
