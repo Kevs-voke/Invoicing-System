@@ -37,4 +37,10 @@ public interface UsersRepo extends ReactiveCrudRepository<UsersEntity, UUID> {
     FROM (VALUES(1)) AS dummy(x)
     """)
 Mono<CustDashboardStatsDTO> getCustomerDashboardStats();
+   @Query("""
+           SELECT id
+            FROM users
+            WHERE user_no = :userNo
+           """)
+   Mono<UUID> getUserIdByUserNo(Long userNo);
 }

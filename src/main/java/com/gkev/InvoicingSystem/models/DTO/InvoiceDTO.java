@@ -9,7 +9,7 @@ import java.util.UUID;
 
 public record InvoiceDTO(
         @NotNull(message = "Customer number is required")
-        UUID customerNo,
+        Long customerNo,
 
         @NotNull(message = "Due date is required")
         LocalDate dueDate,

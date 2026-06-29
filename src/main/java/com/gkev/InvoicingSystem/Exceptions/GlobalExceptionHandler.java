@@ -16,40 +16,26 @@ public class GlobalExceptionHandler {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
 
-    @ExceptionHandler(UserException.class)
-    public Mono<ResponseEntity<ErrorResponseDTO>> handleUserException(UserException e) {
+        private Mono<ResponseEntity<ErrorResponseDTO>> buildResponse(String errorCode, String message, HttpStatus status) {
+            logger.error("Exception occurred. code={}, message={}", errorCode, message);
+            return Mono.just(ResponseEntity
+                    .status(status)
+                    .body(new ErrorResponseDTO(errorCode, message)));
+        }
 
-        logger.error("UserException occurred. code={}, message={}",
-                e.getErrorCode(),
-                e.getMessage()
-        );
+        @ExceptionHandler(UserException.class)
+        public Mono<ResponseEntity<ErrorResponseDTO>> handleUserException(UserException e) {
+            return buildResponse(e.getErrorCode(), e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
 
-        ErrorResponseDTO response = new ErrorResponseDTO(
-                e.getErrorCode(),
-                e.getMessage()
+        @ExceptionHandler(ResourceNotFound.class)
+        public Mono<ResponseEntity<ErrorResponseDTO>> handleResourceNotFound(ResourceNotFound e) {
+            return buildResponse(e.getErrorCode(), e.getMessage(), HttpStatus.NOT_FOUND);
+        }
 
-        );
-
-
-        return Mono.just(ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(response));
-    }
-
-    @ExceptionHandler(ResourceNotFound.class)
-    public Mono<ResponseEntity<ErrorResponseDTO>> handleResourceNotFound(ResourceNotFound e) {
-        logger.error("ResourceNotFound occurred, code= {}, message={}",
-                e.getErrorCode(),e.getMessage());
-
-        ErrorResponseDTO response = new ErrorResponseDTO(
-                e.getErrorCode(),
-                e.getMessage()
-
-        );
-        return Mono.just(ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(response));
+        @ExceptionHandler(InvoiceCreationException.class)
+        public Mono<ResponseEntity<ErrorResponseDTO>> handleInvoiceCreationException(InvoiceCreationException e) {
+           return buildResponse(e.getErrorCode(), e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
 
     }
-
-}
