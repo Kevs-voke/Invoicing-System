@@ -15,8 +15,8 @@ public record InvoiceItemDTO(
         BigDecimal unitPrice,
 
         @NotNull(message = "Quantity is required")
-        @Min(value = 1, message = "Quantity must be at least 1")
-        Integer quantity,
+        @DecimalMin(value = "0.5", message = "Quantity must be at least 0.5")
+        BigDecimal quantity,
 
         @NotNull(message = "Tax is required")
         @DecimalMin(value = "0.0", inclusive = true, message = "Tax cannot be negative")
