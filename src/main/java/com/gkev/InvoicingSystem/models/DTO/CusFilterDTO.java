@@ -33,9 +33,6 @@ public record CusFilterDTO(
         return status != null;
     }
 
-    public boolean hasDueDateRange() {
-        return dueDateFrom != null || dueDateTo != null;
-    }
     public boolean hasEmail() {
         return email != null && !email.isBlank();
     }
@@ -48,9 +45,6 @@ public record CusFilterDTO(
         return customerNo != null;
     }
 
-    public boolean hasUserInfo() {
-        return hasEmail() || hasPhoneNumber() || hasCustomerNo();
-    }
     public boolean hasInvoiceNo() {
         return invoiceNo != null;
     }
@@ -63,9 +57,6 @@ public record CusFilterDTO(
         return dueDateTo != null;
     }
 
-    public boolean isDefaultSort() {
-        return dueDateSortDirection == Sort.Direction.ASC;
-    }
 
 }
 

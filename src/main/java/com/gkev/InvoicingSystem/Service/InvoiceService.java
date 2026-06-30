@@ -1,15 +1,14 @@
 package com.gkev.InvoicingSystem.Service;
 
 import com.gkev.InvoicingSystem.Exceptions.InvoiceCreationException;
-import com.gkev.InvoicingSystem.models.DTO.InvoiceDTO;
-import com.gkev.InvoicingSystem.models.DTO.InvoiceItemDTO;
-import com.gkev.InvoicingSystem.models.DTO.InvoiceItemsResDTO;
-import com.gkev.InvoicingSystem.models.DTO.InvoiceRespDTO;
+import com.gkev.InvoicingSystem.Exceptions.ResourceNotFound;
+import com.gkev.InvoicingSystem.models.DTO.*;
 import com.gkev.InvoicingSystem.models.Mapper.InvoiceMapper;
 import com.gkev.InvoicingSystem.models.entity.InvoiceItemsEntity;
 import com.gkev.InvoicingSystem.models.entity.InvoicesEntity;
 import com.gkev.InvoicingSystem.models.repo.InvoiceItemsRepo;
 import com.gkev.InvoicingSystem.models.repo.InvoiceRepo;
+import com.gkev.InvoicingSystem.models.repo.InvoicesCusRepo;
 import com.gkev.InvoicingSystem.models.repo.UsersRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,6 +29,7 @@ private final InvoiceItemsRepo invoiceItemsRepo;
 private final InvoiceRepo invoiceRepo;
 private final UsersRepo usersRepo;
 private final Logger logger = LoggerFactory.getLogger(InvoiceService.class);
+private final InvoicesCusRepo invoicesCusRepo;
 
 
     public Mono<InvoiceRespDTO> createInvoice(InvoiceDTO invoiceDTO) {
@@ -117,5 +117,11 @@ private final Logger logger = LoggerFactory.getLogger(InvoiceService.class);
                                         .map(savedItems -> new InvoiceMapper().toInvoiceDTO(invoice, items, invoiceDTO.customerNo()));
                             });
                 });
+    }
+    public Flux<InvoiceCustResDTO> getInvoices(InvoicesFilterDTO filter, int page, int size) {
+        logger.info("Query for invoices with filters has started");
+        return invoicesCusRepo.getInvoices(filter, page, size)
+                .switchIfEmpty(Mono.error(() -> new ResourceNotFound("NOT_FOUND", " Invoices records could not be found")))
+                .doOnComplete(() -> logger.info("Invoices records found  "));
     }
 }
