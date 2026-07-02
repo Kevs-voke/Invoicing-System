@@ -11,16 +11,15 @@ import java.util.List;
 public class InvoiceMapper {
   public InvoiceRespDTO toInvoiceDTO(InvoicesEntity invoiceEntity, List<InvoiceItemsResDTO>  invoiceItemsDTO, long customerNo) {
       return new InvoiceRespDTO(
-              customerNo,
-              invoiceEntity.getStatus(),
-              invoiceEntity.getInvoiceNo(),
-              invoiceEntity.getCreatedAt().toLocalDateTime().toLocalDate(),
-              invoiceEntity.getDueDate().toLocalDateTime().toLocalDate(),
-              invoiceItemsDTO,
-              invoiceEntity.getTotalTax(),
-              invoiceEntity.getTotal()
-
-      );
+        invoiceEntity.getInvoiceNo(),
+        invoiceEntity.getStatus(),
+        customerNo,
+        invoiceEntity.getCreatedAt().toLocalDateTime().toLocalDate(),
+        invoiceEntity.getDueDate().toLocalDateTime().toLocalDate(),
+        invoiceItemsDTO,
+        invoiceEntity.getTotalTax(),
+        invoiceEntity.getTotal()
+);
   }
 
 }

@@ -72,7 +72,7 @@ public class InvoicesCusRepoImp implements InvoicesCusRepo {
         }
         String sortColumn = resolveSortColumn(filter.sortBy());
         String direction = filter.sortDirection() == Sort.Direction.DESC ? "DESC" : "ASC";
-        sql.append(" ORDER BY ").append(sortColumn).append(" ").append(direction);
+        sql.append(" ORDER BY ").append(sortColumn).append(" ").append(direction).append(" ");
 
         sql.append("LIMIT :limit OFFSET :offset");
         params.put("limit", size);
