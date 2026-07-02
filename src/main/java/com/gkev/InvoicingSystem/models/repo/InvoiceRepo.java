@@ -13,14 +13,29 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
     @Query(
             """
                     SELECT
-   COUNT(id) FILTER (WHERE status = 'DRAFT') AS draft,
-   COUNT(id) FILTER (WHERE status = 'PENDING') AS pending,
-   COUNT(id) FILTER (WHERE status = 'OVERDUE') AS overdue,
-   COALESCE(SUM((total-amount_paid)) FILTER (WHERE status = 'OVERDUE'), 0) AS amount_overdue,
-   COALESCE(SUM((total-amount_paid)) FILTER (WHERE status IN ('OVERDUE', 'PENDING')), 0) AS amount_receivables
-FROM invoice;
+                                       COUNT(id) FILTER (WHERE status = 'draft') AS draft,
+                                       COUNT(id) FILTER (WHERE status = 'pending') AS pending,
+                                       COUNT(id) FILTER (WHERE status = 'overdue') AS overdue,
+                                   	COALESCE (SUM((total-amount_paid)) FILTER (WHERE status = 'overdue'), 0) AS amount_overdue,
+                                   	COALESCE SUM(total - amount_paid) FILTER (WHERE status IN ('overdue', 'pending')), 0) AS  amount_receivables
+                                   	FROM invoice;
                     
                     """
     )
     Mono<InvoiceDashboardStatsDTO> getInvoiceDashboardStats();
+    @Query("""
+            SELECT id
+             FROM invoice
+              WHERE invoice_no = :invoiceNo;
+            """)
+    Mono<UUID> getInvoiceIdByInvoiceNo(long invoiceNo);
+
+    @Query("""
+            SELECT EXISTS (
+                SELECT 1
+                 FROM invoice
+                  WHERE cust_id =  :userId)
+                   AS invoice_exists;
+            """)
+    Mono<Boolean> invoiceExistsByUserId(UUID userId);
 }
