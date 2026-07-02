@@ -38,7 +38,7 @@ private final InvoicesCusRepo invoicesCusRepo;
         Flux<InvoiceItemDTO> invoiceItems = Flux.fromIterable(invoiceDTO.items());
         return invoiceItems
                 .flatMap(dto -> {
-                    BigDecimal quantity = BigDecimal.valueOf(dto.quantity());
+                    BigDecimal quantity = dto.quantity();
                     BigDecimal subTotal = dto.unitPrice().multiply(quantity);
                     BigDecimal taxSubtotal = dto.tax().multiply(quantity);
                     BigDecimal lineTotal = subTotal.add(taxSubtotal);
@@ -123,5 +123,11 @@ private final InvoicesCusRepo invoicesCusRepo;
         return invoicesCusRepo.getInvoices(filter, page, size)
                 .switchIfEmpty(Mono.error(() -> new ResourceNotFound("NOT_FOUND", " Invoices records could not be found")))
                 .doOnComplete(() -> logger.info("Invoices records found  "));
+    }
+    public Mono<InvoiceDashboardStatsDTO> getInvoiceDashboardStats() {
+        logger.info("Query for invoices dashboard stats has started");
+        return invoiceRepo.getInvoiceDashboardStats()
+                .switchIfEmpty(Mono.error(() -> new ResourceNotFound("NOT_FOUND", " invoices dashboard stats could not be found")))
+                .doOnSuccess(response ->logger.info("Invoices dashboard stats found"));
     }
 }

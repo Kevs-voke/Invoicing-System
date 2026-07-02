@@ -1,10 +1,7 @@
 package com.gkev.InvoicingSystem.Controller;
 
 import com.gkev.InvoicingSystem.Service.InvoiceService;
-import com.gkev.InvoicingSystem.models.DTO.InvoiceCustResDTO;
-import com.gkev.InvoicingSystem.models.DTO.InvoiceDTO;
-import com.gkev.InvoicingSystem.models.DTO.InvoiceRespDTO;
-import com.gkev.InvoicingSystem.models.DTO.InvoicesFilterDTO;
+import com.gkev.InvoicingSystem.models.DTO.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -29,12 +26,17 @@ public class invoicesController {
     public Mono<ResponseEntity<List<InvoiceCustResDTO>>> getInvoices(
             InvoicesFilterDTO filter,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size){
-    {
-        return invoiceService.
-                getInvoices(filter,page,size)
-                .collectList()
+            @RequestParam(defaultValue = "10") int size) {
+        {
+            return invoiceService.
+                    getInvoices(filter, page, size)
+                    .collectList()
+                    .map(ResponseEntity::ok);
+        }
+    }
+    @GetMapping("/dashboard")
+    public Mono<ResponseEntity<InvoiceDashboardStatsDTO>>  getInvoiceDashboardStats(){
+        return invoiceService.getInvoiceDashboardStats()
                 .map(ResponseEntity::ok);
     }
-}
 }
