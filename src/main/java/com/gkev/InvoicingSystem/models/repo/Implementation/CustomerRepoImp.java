@@ -42,18 +42,18 @@ public class CustomerRepoImp implements CustomerRepo {
                 
                 """);
         Map<String, Object> params = new HashMap<>();
-        if(filter.hasEmail()){
-            sql.append("AND usr.email = :email");
-            params.put("email", filter.email());
-        }
-        if(filter.hasPhoneNumber()){
-            sql.append("AND inv.phone_number = :phoneNumber");
-            params.put("phoneNumber", filter.phoneNumber());
-        }
-        if(filter.hasCustomerNo()){
-            sql.append("AND usr.user_no = :customerNo");
-            params.put("customerNo", filter.customerNo());
-        }
+        if (filter.hasEmail()) {
+    sql.append(" AND usr.email ILIKE :email ");
+    params.put("email", "%" + filter.email() + "%");
+}
+if (filter.hasPhoneNumber()) {
+    sql.append(" AND usr.phone_number LIKE :phoneNumber ");
+    params.put("phoneNumber", "%" + filter.phoneNumber() + "%");
+}
+if (filter.hasCustomerNo()) {
+    sql.append(" AND CAST(usr.user_no AS TEXT) LIKE :customerNo ");
+    params.put("customerNo", "%" + filter.customerNo() + "%");
+}
         if (filter.hasStatus()){
             sql.append("AND inv.status = :status");
             params.put("status", filter.status());
