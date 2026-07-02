@@ -13,12 +13,12 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
     @Query(
             """
                     SELECT
-                                       COUNT(id) FILTER (WHERE status = 'draft') AS draft,
-                                       COUNT(id) FILTER (WHERE status = 'COMPLETED') AS pending,
-                                       COUNT(id) FILTER (WHERE status = 'WAITING') AS overdue,
-                                   	COALESCE (SUM((total-amount_paid)) FILTER (WHERE status = 'overdue'), 0) AS amount_overdue,
-                                   	COALESCE (SUM((total-amount_paid)) FILTER (WHERE status = 'overdue' || 'pending'), 0) AS  amount_receivables
-                                   	FROM invoice;
+   COUNT(id) FILTER (WHERE status = 'DRAFT') AS draft,
+   COUNT(id) FILTER (WHERE status = 'PENDING') AS pending,
+   COUNT(id) FILTER (WHERE status = 'OVERDUE') AS overdue,
+   COALESCE(SUM((total-amount_paid)) FILTER (WHERE status = 'OVERDUE'), 0) AS amount_overdue,
+   COALESCE(SUM((total-amount_paid)) FILTER (WHERE status IN ('OVERDUE', 'PENDING')), 0) AS amount_receivables
+FROM invoice;
                     
                     """
     )
