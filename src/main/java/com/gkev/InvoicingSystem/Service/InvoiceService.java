@@ -100,22 +100,27 @@ private final InvoicesCusRepo invoicesCusRepo;
                                             entity.setSubTotal(invoiceItem.total());
                                             entity.setTax(invoiceItem.tax());
                                             entity.setTaxSubtotal(invoiceItem.tax_total());
+                                            entity.setQuantity(invoiceItem.quantity());
                                             return entity;
                                         })
                                         .toList();
-
-                                return invoiceItemsRepo.saveAll(invItems)
-                                        .collectList()
-                                        .doOnSuccess(saved -> {
-                                            if (saved != null) {
-                                                logger.info("Saved {} invoice items for invoiceId={}",
-                                                        saved.size(), invoice.getId());
-                                            }
-                                        })
-                                        .doOnError(e -> logger.error("Failed to save invoice items for invoiceId={}: {}",
-                                                invoice.getId(), e.getMessage()))
-                                        .map(savedItems -> new InvoiceMapper().toInvoiceDTO(invoice, items, invoiceDTO.customerNo()));
-                            });
+                                        return invoiceItemsRepo.saveAll(invItems)
+        .collectList()
+        .doOnSuccess(saved -> {
+            if (saved != null) {
+                logger.info("Saved {} invoice items for invoiceId={}", saved.size(), invoice.getId());
+            }
+        })
+        .doOnError(e -> logger.error("Failed to save invoice items for invoiceId={}: {}", 
+                invoice.getId(), e.getMessage()))
+        .flatMap(savedItems -> 
+            // Re-fetch the full invoice with generated fields
+            invoiceRepo.findById(invoice.getId())
+                .map(fullInvoice -> new InvoiceMapper().toInvoiceDTO(fullInvoice, items, invoiceDTO.customerNo()))
+                .switchIfEmpty(Mono.error(new RuntimeException("Invoice not found after save: " + invoice.getId())))
+        );
+                            
+                    });                 
                 });
     }
     public Flux<InvoiceCustResDTO> getInvoices(InvoicesFilterDTO filter, int page, int size) {
