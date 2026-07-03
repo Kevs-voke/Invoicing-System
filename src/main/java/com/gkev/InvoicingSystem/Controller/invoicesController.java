@@ -39,4 +39,11 @@ public class invoicesController {
         return invoiceService.getInvoiceDashboardStats()
                 .map(ResponseEntity::ok);
     }
+    @GetMapping("/detailed-invoice")
+    public Mono<ResponseEntity<DetailedInvoiceResDTO>> getDetailedInvoice(
+            @RequestParam long customerNo,
+            @RequestParam long invoiceNo) {
+        return invoiceService.getDetailedInvoice(invoiceNo,customerNo)
+                .map(ResponseEntity::ok);
+    }
 }

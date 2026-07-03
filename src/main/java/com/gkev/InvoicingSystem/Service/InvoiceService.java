@@ -1,35 +1,42 @@
-package com.gkev.InvoicingSystem.Service;
+    package com.gkev.InvoicingSystem.Service;
 
-import com.gkev.InvoicingSystem.Exceptions.InvoiceCreationException;
-import com.gkev.InvoicingSystem.Exceptions.ResourceNotFound;
-import com.gkev.InvoicingSystem.models.DTO.*;
-import com.gkev.InvoicingSystem.models.Mapper.InvoiceMapper;
-import com.gkev.InvoicingSystem.models.entity.InvoiceItemsEntity;
-import com.gkev.InvoicingSystem.models.entity.InvoicesEntity;
-import com.gkev.InvoicingSystem.models.repo.InvoiceItemsRepo;
-import com.gkev.InvoicingSystem.models.repo.InvoiceRepo;
-import com.gkev.InvoicingSystem.models.repo.InvoicesCusRepo;
-import com.gkev.InvoicingSystem.models.repo.UsersRepo;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+    import com.gkev.InvoicingSystem.Exceptions.InvoiceCreationException;
+    import com.gkev.InvoicingSystem.Exceptions.ResourceNotFound;
+    import com.gkev.InvoicingSystem.models.DTO.*;
+    import com.gkev.InvoicingSystem.models.Mapper.InvoiceMapper;
+    import com.gkev.InvoicingSystem.models.entity.InvoiceItemsEntity;
+    import com.gkev.InvoicingSystem.models.entity.InvoicesEntity;
+    import com.gkev.InvoicingSystem.models.repo.InvoiceItemsRepo;
+    import com.gkev.InvoicingSystem.models.repo.InvoiceRepo;
+    import com.gkev.InvoicingSystem.models.repo.InvoicesCusRepo;
+    import com.gkev.InvoicingSystem.models.repo.UsersRepo;
+    import lombok.RequiredArgsConstructor;
+    import org.springframework.stereotype.Service;
+    import reactor.core.publisher.Flux;
+    import reactor.core.publisher.Mono;
 
-import java.math.BigDecimal;
-import java.sql.Timestamp;
-import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+    import java.math.BigDecimal;
+    import java.sql.Timestamp;
+    import java.util.List;
+    import java.util.UUID;
+
+    import org.slf4j.Logger;
+    import org.slf4j.LoggerFactory;
+    import reactor.core.scheduler.Schedulers;
+    import reactor.util.function.Tuples;
+    import tools.jackson.core.type.TypeReference;
+    import tools.jackson.databind.ObjectMapper;
 
 
-@Service
-@RequiredArgsConstructor
-public class InvoiceService {
-private final InvoiceItemsRepo invoiceItemsRepo;
-private final InvoiceRepo invoiceRepo;
-private final UsersRepo usersRepo;
-private final Logger logger = LoggerFactory.getLogger(InvoiceService.class);
-private final InvoicesCusRepo invoicesCusRepo;
+    @Service
+    @RequiredArgsConstructor
+    public class InvoiceService {
+    private final InvoiceItemsRepo invoiceItemsRepo;
+    private final InvoiceRepo invoiceRepo;
+    private final UsersRepo usersRepo;
+    private final Logger logger = LoggerFactory.getLogger(InvoiceService.class);
+    private final InvoicesCusRepo invoicesCusRepo;
+    private final ObjectMapper objectMapper;
 
 
     public Mono<InvoiceRespDTO> createInvoice(InvoiceDTO invoiceDTO) {
@@ -135,4 +142,60 @@ private final InvoicesCusRepo invoicesCusRepo;
                 .switchIfEmpty(Mono.error(() -> new ResourceNotFound("NOT_FOUND", " invoices dashboard stats could not be found")))
                 .doOnSuccess(response ->logger.info("Invoices dashboard stats found"));
     }
+
+    public Mono<DetailedInvoiceResDTO> getDetailedInvoice(long invoiceNo, long customerNo) {
+
+        logger.info("Querying detailed invoice for invoice: {} has started", invoiceNo);
+        logger.info("Validation of invoice and customer has started");
+        Mono<UUID> invoiceId = invoiceRepo.getInvoiceIdByInvoiceNo(invoiceNo)
+                .switchIfEmpty(Mono.error(new ResourceNotFound("NOT_FOUND", "Enter VALID Invoice Number or User Number")));
+        Mono<UUID> userId = usersRepo.getUserIdByUserNo(customerNo)
+                .switchIfEmpty(Mono.error(new ResourceNotFound("NOT_FOUND", "Enter VALID Invoice Number or User Number")));
+        return Mono.zip(invoiceId, userId)
+                .flatMap(tuple -> {
+
+                    UUID invoiceNumber = tuple.getT1();
+                    UUID userNumber = tuple.getT2();
+
+                    return invoiceRepo.invoiceExistsByUserId(userNumber)
+                            .flatMap(
+                                    isInvCust -> {
+                                        if (!isInvCust) {
+                                            throw new ResourceNotFound("NOT_FOUND", "Enter VALID Invoice Number or User Number");
+                                        }
+                                        logger.info("Valid customer Number and Invoice Number");
+                                        return Mono.just(Tuples.of(invoiceNumber, userNumber));
+                                    }
+                            )
+                            .flatMap(
+                                    invCusTuple -> invoiceRepo.getDetailedInvoiceById(invoiceNumber)
+                                            .switchIfEmpty(Mono.error(() -> new ResourceNotFound("NOT_FOUND", "Enter VALID Invoice Number or User Number")))
+                                            .flatMap(invoice -> Mono.fromCallable(() -> {
+                                                        List<InvoiceItemsResDTO> invoiceItems = parseInvoiceItems(invoice.invoiceItems());
+                                                        return new DetailedInvoiceResDTO(
+                                                                invoice.invoiceNo(),
+                                                                invoice.status(),
+                                                                invoice.dueDate(),
+                                                                invoice.total_tax(),
+                                                                invoice.total(),
+                                                                invoice.amount_paid(),
+                                                                invoice.balance(),
+                                                                invoiceItems
+                                                        );
+                                                    })
+                                                    .subscribeOn(Schedulers.parallel())));
+
+                });
+    }
+
+    private List<InvoiceItemsResDTO> parseInvoiceItems(String json) {
+        try {
+            return objectMapper.readValue(json, new TypeReference<>() {});
+        } catch (Exception e) {
+            logger.error("Failed to parse json response", e);
+            throw new RuntimeException("Failed to parse Invoice Items JSON", e);
+        }
+    }
+
+
 }
