@@ -1,5 +1,6 @@
 package com.gkev.InvoicingSystem.models.repo;
 
+import com.gkev.InvoicingSystem.models.DTO.DetailedInvoiceDTO;
 import com.gkev.InvoicingSystem.models.DTO.InvoiceDashboardStatsDTO;
 import com.gkev.InvoicingSystem.models.entity.InvoicesEntity;
 import org.springframework.data.r2dbc.repository.Query;
@@ -13,11 +14,11 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
     @Query(
             """
                     SELECT
-                                       COUNT(id) FILTER (WHERE status = 'draft') AS draft,
-                                       COUNT(id) FILTER (WHERE status = 'pending') AS pending,
-                                       COUNT(id) FILTER (WHERE status = 'overdue') AS overdue,
-                                   	COALESCE (SUM((total-amount_paid)) FILTER (WHERE status = 'overdue'), 0) AS amount_overdue,
-                                   	COALESCE SUM(total - amount_paid) FILTER (WHERE status IN ('overdue', 'pending')), 0) AS  amount_receivables
+                                       COUNT(id) FILTER (WHERE LOWER(status) = LOWER('draft')) AS draft,
+                                       COUNT(id) FILTER (WHERE LOWER(status) = LOWER('pending')) AS pending,
+                                       COUNT(id) FILTER (WHERE LOWER(status) = LOWER('overdue')) AS overdue,
+                                   	COALESCE (SUM((total-amount_paid)) FILTER (WHERE LOWER(status) = LOWER('overdue'), 0) AS amount_overdue,
+                                   	COALESCE (SUM((total - amount_paid)) FILTER (WHERE LOWER(status) IN (LOWER('overdue', LOWER('pending'))), 0) AS  amount_receivables
                                    	FROM invoice;
                     
                     """
@@ -38,4 +39,39 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
                    AS invoice_exists;
             """)
     Mono<Boolean> invoiceExistsByUserId(UUID userId);
+
+    @Query("""
+            SELECT
+            inv.invoice_no,
+            inv.status,
+            inv.due_date,
+            COALESCE(inv.total_tax,0),
+            COALESCE(inv.total,0),
+            COALESCE(inv.amount_paid,0),
+            COALESCE((inv.total - inv.amount_paid),0) AS balances,
+            
+            COALESCE(json_agg(
+            json_build_object(
+            'item_name',items.item_name,
+            'unit_price', items.unit_price,
+            'quantity', items.quantity,
+            'total_tax', COALESCE(items.tax_subtotal,0),
+            'sub_total', COALESCE(items.sub_total,0)
+            )
+            ),'[]'::json) AS invoice_items
+            
+            FROM invoice inv
+            JOIN invoice_items items ON inv.id =items.invoice_id
+            WHERE inv.id = :id
+            GROUP BY inv.invoice_no,
+            inv.status,
+            inv.due_date,
+            inv.total_tax,
+            inv.total,
+            inv.amount_paid;
+            
+            
+            
+            """)
+    Mono<DetailedInvoiceDTO> getDetailedInvoiceById(UUID id);
 }
