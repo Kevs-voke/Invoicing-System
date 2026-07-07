@@ -55,20 +55,21 @@ Mono<Long> getInvoiceNoByInvoiceId(UUID id);
             inv.invoice_no,
             inv.status,
             inv.due_date,
-            COALESCE(inv.total_tax,0),
-            COALESCE(inv.total,0),
-            COALESCE(inv.amount_paid,0),
+            COALESCE(inv.total_tax,0)  AS total_tax,
+            COALESCE(inv.total,0) AS total,
+            COALESCE(inv.amount_paid,0) AS amount_paid,
             COALESCE((inv.total - inv.amount_paid),0) AS balances,
             
-            COALESCE(json_agg(
-            json_build_object(
-            'item_name',items.item_name,
-            'unit_price', items.unit_price,
-            'quantity', items.quantity,
-            'total_tax', COALESCE(items.tax_subtotal,0),
-            'sub_total', COALESCE(items.sub_total,0)
-            )
-            ),'[]'::json) AS invoice_items
+      COALESCE(json_agg(
+    json_build_object(
+        'itemName', items.item_name,
+        'unitPrice', items.unit_price,
+        'quantity', items.quantity,
+        'tax', items.tax,
+        'tax_total', COALESCE(items.tax_subtotal, 0),
+        'total', COALESCE(items.sub_total, 0)
+    )
+), '[]'::json) AS invoice_items
             
             FROM invoice inv
             JOIN invoice_items items ON inv.id =items.invoice_id
@@ -103,4 +104,12 @@ Mono<Long> getInvoiceNoByInvoiceId(UUID id);
                 WHERE inv.status = 'overdue'
             """)
     Flux<OverdueInvoiceDTO> getOverdueInvoiceCust();
+
+   
+                @Query("""
+                UPDATE invoice
+                SET amount_paid = COALESCE(amount_paid, 0) + :amount
+                WHERE id = :invoiceId
+                """)
+                Mono<Integer> incrementAmountPaid(UUID invoiceId, BigDecimal amount);
 }
