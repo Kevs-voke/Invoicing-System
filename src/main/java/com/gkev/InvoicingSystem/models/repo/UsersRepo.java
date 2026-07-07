@@ -43,4 +43,10 @@ Mono<CustDashboardStatsDTO> getCustomerDashboardStats();
             WHERE user_no = :userNo
            """)
    Mono<UUID> getUserIdByUserNo(Long userNo);
+   @Query("""
+        SELECT user_no
+         FROM users
+         WHERE id = :id
+        """)
+Mono<Long> getUserNoByUserId(UUID id);
 }

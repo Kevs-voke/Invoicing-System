@@ -22,7 +22,6 @@ public class CustomerRepoImp implements CustomerRepo {
 
     @Override
     public Flux<CustomerInvoiceResDTO> findCustomers(CusFilterDTO filter, int page, int size) {
-//        As total returns balance or dues  didn't change naming since it may lead to refactor frontend
         StringBuilder sql = new StringBuilder("""
                 
                 SELECT

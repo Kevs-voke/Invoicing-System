@@ -16,6 +16,8 @@ public class PaymentEntity {
     private UUID id;
     @Column("invoice_id")
     private UUID invoiceId;
+    @Column("payment_no")
+    private Long paymentNo;
     @Column("customer_id")
     private UUID CustomerId;
     private BigDecimal amount;
@@ -24,6 +26,8 @@ public class PaymentEntity {
     @Column("payment_method")
     private String paymentMethod;
     private String notes;
+    @Column("status")
+    private String status;
     @Column("payment_at")
     private Timestamp paymentAt;
 
