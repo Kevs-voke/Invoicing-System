@@ -2,9 +2,11 @@ package com.gkev.InvoicingSystem.models.repo;
 
 import com.gkev.InvoicingSystem.models.DTO.DetailedInvoiceDTO;
 import com.gkev.InvoicingSystem.models.DTO.InvoiceDashboardStatsDTO;
+import com.gkev.InvoicingSystem.models.DTO.OverdueInvoiceDTO;
 import com.gkev.InvoicingSystem.models.entity.InvoicesEntity;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import org.springframework.data.r2dbc.repository.Modifying;
 import java.math.BigDecimal;
@@ -49,39 +51,56 @@ Mono<Long> getInvoiceNoByInvoiceId(UUID id);
     Mono<Boolean> invoiceExistsByUserId(UUID userId);
 
     @Query("""
-        SELECT
-        inv.invoice_no,
-        inv.status,
-        inv.due_date,
-        COALESCE(inv.total_tax,0) AS total_tax,
-        COALESCE(inv.total,0) AS total,
-        COALESCE(inv.amount_paid,0) AS amount_paid,
-        COALESCE((inv.total - inv.amount_paid),0) AS balance,
+            SELECT
+            inv.invoice_no,
+            inv.status,
+            inv.due_date,
+            COALESCE(inv.total_tax,0),
+            COALESCE(inv.total,0),
+            COALESCE(inv.amount_paid,0),
+            COALESCE((inv.total - inv.amount_paid),0) AS balances,
+            
+            COALESCE(json_agg(
+            json_build_object(
+            'item_name',items.item_name,
+            'unit_price', items.unit_price,
+            'quantity', items.quantity,
+            'total_tax', COALESCE(items.tax_subtotal,0),
+            'sub_total', COALESCE(items.sub_total,0)
+            )
+            ),'[]'::json) AS invoice_items
+            
+            FROM invoice inv
+            JOIN invoice_items items ON inv.id =items.invoice_id
+            WHERE inv.id = :id
+            GROUP BY inv.invoice_no,
+            inv.status,
+            inv.due_date,
+            inv.total_tax,
+            inv.total,
+            inv.amount_paid;
+            
+            
+            
+            """)
+    Mono<DetailedInvoiceDTO> getDetailedInvoiceById(UUID id);
 
-        COALESCE(json_agg(
-        json_build_object(
-        'itemName', items.item_name,
-        'unitPrice', items.unit_price,
-        'quantity', items.quantity,
-        'tax', COALESCE(items.tax,0),
-        'tax_total', COALESCE(items.tax_subtotal,0),
-        'total', COALESCE(items.sub_total,0)
-        )
-        ),'[]'::json) AS invoice_items
-
-        FROM invoice inv
-        JOIN invoice_items items ON inv.id = items.invoice_id
-        WHERE inv.id = :id
-        GROUP BY inv.invoice_no,
-        inv.status,
-        inv.due_date,
-        inv.total_tax,
-        inv.total,
-        inv.amount_paid;
-        """)
-Mono<DetailedInvoiceDTO> getDetailedInvoiceById(UUID id);
-    
-    @Modifying
-@Query("UPDATE invoice SET amount_paid = amount_paid + :amount WHERE id = :invoiceId")
-Mono<Integer> incrementAmountPaid(UUID invoiceId, BigDecimal amount);
+    @Query("""
+            SELECT 
+                 us.first_name,
+                 us.last_name,
+                 us.user_no,
+                 us.email,
+                 us.phone_number,
+                 inv.invoice_no,
+                 inv.created_at,
+                 inv.due_date,
+                 inv.total,
+                 inv.amount_paid,
+                 (inv.total - amount_paid) AS overdue
+                FROM invoice inv
+                LEFT JOIN users us ON inv.cust_id = us.id
+                WHERE inv.status = 'overdue'
+            """)
+    Flux<OverdueInvoiceDTO> getOverdueInvoiceCust();
 }

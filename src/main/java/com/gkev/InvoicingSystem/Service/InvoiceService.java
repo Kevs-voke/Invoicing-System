@@ -176,10 +176,10 @@
                                                                 invoice.invoiceNo(),
                                                                 invoice.status(),
                                                                 invoice.dueDate(),
-                                                                invoice.total_tax(),
+                                                                invoice.totalTax(),
                                                                 invoice.total(),
-                                                                invoice.amount_paid(),
-                                                                invoice.balance(),
+                                                                invoice.amountPaid(),
+                                                                invoice.balances(),
                                                                 invoiceItems
                                                         );
                                                     })
@@ -195,6 +195,10 @@
             logger.error("Failed to parse json response", e);
             throw new RuntimeException("Failed to parse Invoice Items JSON", e);
         }
+    }
+
+    public Flux<OverdueInvoiceDTO> getOverdueInvoiceCust() {
+       return invoiceRepo.getOverdueInvoiceCust();
     }
 
 
