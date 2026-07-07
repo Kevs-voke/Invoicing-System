@@ -8,10 +8,10 @@ public record DetailedInvoiceDTO(
         Long invoiceNo,
         String status,
         LocalDate dueDate,
-        BigDecimal total_tax,
+        BigDecimal totalTax,
         BigDecimal total,
-        BigDecimal amount_paid,
-        BigDecimal balance,
+        BigDecimal amountPaid,
+        BigDecimal balances,
         String invoiceItems
 ) {
 }

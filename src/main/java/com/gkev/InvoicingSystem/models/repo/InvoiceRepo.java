@@ -2,9 +2,11 @@ package com.gkev.InvoicingSystem.models.repo;
 
 import com.gkev.InvoicingSystem.models.DTO.DetailedInvoiceDTO;
 import com.gkev.InvoicingSystem.models.DTO.InvoiceDashboardStatsDTO;
+import com.gkev.InvoicingSystem.models.DTO.OverdueInvoiceDTO;
 import com.gkev.InvoicingSystem.models.entity.InvoicesEntity;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.UUID;
@@ -74,4 +76,23 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
             
             """)
     Mono<DetailedInvoiceDTO> getDetailedInvoiceById(UUID id);
+
+    @Query("""
+            SELECT 
+                 us.first_name,
+                 us.last_name,
+                 us.user_no,
+                 us.email,
+                 us.phone_number,
+                 inv.invoice_no,
+                 inv.created_at,
+                 inv.due_date,
+                 inv.total,
+                 inv.amount_paid,
+                 (inv.total - amount_paid) AS overdue
+                FROM invoice inv
+                LEFT JOIN users us ON inv.cust_id = us.id
+                WHERE inv.status = 'overdue'
+            """)
+    Flux<OverdueInvoiceDTO> getOverdueInvoiceCust();
 }
