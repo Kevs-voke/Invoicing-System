@@ -171,8 +171,16 @@ public class UserService {
     public Mono<MeDTO> getMe(UUID userId) {
         logger.info("Querying user: {}", userId);
         return usersRepo.findById(userId)
-                .map(MeMapper::toMeDto)
                 .switchIfEmpty(Mono.error(() -> new UserException("User not found", "USER_NOT_FOUND")))
+                .flatMap(user ->
+                        myUserDetailsService.findRolesByemail(user.getEmail())
+                                .map(roles ->
+                                        roles.stream()
+                                                .map(RolesEntity::getRoleName)
+                                                .toList()
+                                )
+                                .map(roleNames -> MeMapper.toMeDto(user, roleNames))
+                )
                 .doOnSuccess(response -> logger.info("User: {} has been successfully queried ", userId));
     }
 }
