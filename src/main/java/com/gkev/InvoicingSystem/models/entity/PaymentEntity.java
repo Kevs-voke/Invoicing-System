@@ -30,5 +30,14 @@ public class PaymentEntity {
     private String status;
     @Column("payment_at")
     private Timestamp paymentAt;
-
+    @Column("created_at")
+    private Timestamp createdAt;
+    @Column("confirmed_at")
+    private Timestamp confirmedAt;
+    @Column("confirmed_by")
+    private UUID confirmedBy;
+    @Column("failed_at")
+    private Timestamp failedAt;
+    @Column("failed_by")
+    private UUID failedBy;
 }

@@ -4,6 +4,7 @@ import com.gkev.InvoicingSystem.Exceptions.ResourceNotFound;
 import com.gkev.InvoicingSystem.models.DTO.PaymentDTO;
 import com.gkev.InvoicingSystem.models.DTO.PaymentResDTO;
 import com.gkev.InvoicingSystem.models.Mapper.PaymentMapper;
+import com.gkev.InvoicingSystem.models.UserPrincipal;
 import com.gkev.InvoicingSystem.models.entity.PaymentEntity;
 import com.gkev.InvoicingSystem.models.repo.InvoiceRepo;
 import com.gkev.InvoicingSystem.models.repo.PaymentsRepo;
@@ -17,6 +18,7 @@ import com.gkev.InvoicingSystem.models.DTO.PaymentsFilterDTO;
 import com.gkev.InvoicingSystem.models.repo.PaymentsCusRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import reactor.core.publisher.Flux;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -70,6 +72,7 @@ public class PaymentService {
                                        paymentEntity.setStatus("pending");
                                        paymentEntity.setTransactionRef(paymentDTO.transaction_ref());
                                        paymentEntity.setPaymentAt(Timestamp.valueOf(LocalDateTime.now()));
+                                       paymentEntity.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
 
                                        return paymentsRepo.save(paymentEntity)
                                                .flatMap(payment -> paymentsRepo.findById(payment.getId()))
@@ -89,54 +92,70 @@ public class PaymentService {
         .doOnComplete(() -> logger.info("Payments records found"));
     }
 
-public Mono<PaymentResDTO> confirmPayment(Long paymentNo) {
-    return paymentsRepo.getPaymentIdByPaymentNo(paymentNo)
-        .switchIfEmpty(Mono.error(new ResourceNotFound("NOT_FOUND", "Payment not found")))
-        .flatMap(paymentsRepo::findById)
-        .switchIfEmpty(Mono.error(new ResourceNotFound("NOT_FOUND", "Payment not found")))
-        .flatMap(payment -> {
-            if (!"pending".equalsIgnoreCase(payment.getStatus())) {
-                return Mono.error(new UserException("INVALID_STATE", "Only pending payments can be confirmed"));
-            }
-            payment.setStatus("confirmed");
-            return paymentsRepo.save(payment)
-                .flatMap(saved -> invoiceRepo.incrementAmountPaid(saved.getInvoiceId(), saved.getAmount())
-                    .thenReturn(saved));
-        })
-        .flatMap(this::toPaymentResDTOWithFriendlyNumbers);
-}
+    private Mono<UUID> currentUserId() {
+        return ReactiveSecurityContextHolder.getContext()
+                .map(ctx -> ((UserPrincipal) ctx.getAuthentication().getPrincipal()).getUserId());
+    }
 
-public Mono<PaymentResDTO> failPayment(Long paymentNo) {
-    return paymentsRepo.getPaymentIdByPaymentNo(paymentNo)
-            .switchIfEmpty(Mono.error(new ResourceNotFound("NOT_FOUND", "Payment not found")))
-            .flatMap(paymentsRepo::findById)
-            .switchIfEmpty(Mono.error(new ResourceNotFound("NOT_FOUND", "Payment not found")))
+    public Mono<PaymentResDTO> confirmPayment(Long paymentNo) {
+        Mono<PaymentEntity> payment = paymentsRepo.getPaymentIdByPaymentNo(paymentNo)
+                .switchIfEmpty(Mono.error(new ResourceNotFound("NOT_FOUND", "Payment not found")))
+                .flatMap(paymentsRepo::findById)
+                .switchIfEmpty(Mono.error(new ResourceNotFound("NOT_FOUND", "Payment not found")));
 
-            .flatMap(payment -> {
-            if (!"pending".equalsIgnoreCase(payment.getStatus())) {
-                return Mono.error(new UserException("INVALID_STATE", "Only pending payments can be failed"));
-            }
-            payment.setStatus("failed");
-            return paymentsRepo.save(payment);
-        })
-        .flatMap(this::toPaymentResDTOWithFriendlyNumbers);
-}
+        return Mono.zip(payment, currentUserId())
+                .flatMap(tuple -> {
+                    PaymentEntity pymt = tuple.getT1();
+                    UUID managerId = tuple.getT2();
+                    if (!"pending".equalsIgnoreCase(pymt.getStatus())) {
+                        return Mono.error(new UserException("INVALID_STATE", "Only pending payments can be confirmed"));
+                    }
+                    pymt.setStatus("confirmed");
+                    pymt.setConfirmedAt(Timestamp.valueOf(LocalDateTime.now()));
+                    pymt.setConfirmedBy(managerId);
+                    return paymentsRepo.save(pymt)
+                            .flatMap(saved -> invoiceRepo.incrementAmountPaid(saved.getInvoiceId(), saved.getAmount())
+                                    .thenReturn(saved));
+                })
+                .flatMap(this::toPaymentResDTOWithFriendlyNumbers);
+    }
 
-public Mono<PaymentDashboardStatsDTO> getPaymentDashboardStats() {
-    return paymentsRepo.getPaymentDashboardStats();
-}
+    public Mono<PaymentResDTO> failPayment(Long paymentNo) {
+        Mono<PaymentEntity> payment = paymentsRepo.getPaymentIdByPaymentNo(paymentNo)
+                .switchIfEmpty(Mono.error(new ResourceNotFound("NOT_FOUND", "Payment not found")))
+                .flatMap(paymentsRepo::findById)
+                .switchIfEmpty(Mono.error(new ResourceNotFound("NOT_FOUND", "Payment not found")));
 
-private Mono<PaymentResDTO> toPaymentResDTOWithFriendlyNumbers(PaymentEntity payment) {
-    Mono<Long> invoiceNo = invoiceRepo.getInvoiceNoByInvoiceId(payment.getInvoiceId());
-    Mono<Long> customerNo = usersRepo.getUserNoByUserId(payment.getCustomerId());
+        return Mono.zip(payment, currentUserId())
+                .flatMap(tuple -> {
+                    PaymentEntity pymt = tuple.getT1();
+                    UUID managerId = tuple.getT2();
+                    if (!"pending".equalsIgnoreCase(pymt.getStatus())) {
+                        return Mono.error(new UserException("INVALID_STATE", "Only pending payments can be failed"));
+                    }
+                    pymt.setStatus("failed");
+                    pymt.setFailedAt(Timestamp.valueOf(LocalDateTime.now()));
+                    pymt.setFailedBy(managerId);
+                    return paymentsRepo.save(pymt);
+                })
+                .flatMap(this::toPaymentResDTOWithFriendlyNumbers);
+    }
 
-    return Mono.zip(invoiceNo, customerNo)
-            .map(tuple -> paymentMapper.topaymentResDTO(payment, tuple.getT2(), tuple.getT1()));
-}
+    public Mono<PaymentDashboardStatsDTO> getPaymentDashboardStats() {
+        return paymentsRepo.getPaymentDashboardStats();
+    }
 
-public Mono<DetailedPaymentResDTO> getDetailedPayment(Long paymentNo) {
-    return paymentsRepo.getDetailedPaymentByPaymentNo(paymentNo)
-        .switchIfEmpty(Mono.error(new ResourceNotFound("NOT_FOUND", "Payment not found")));
-}
+    private Mono<PaymentResDTO> toPaymentResDTOWithFriendlyNumbers(PaymentEntity payment) {
+        Mono<Long> invoiceNo = invoiceRepo.getInvoiceNoByInvoiceId(payment.getInvoiceId());
+        Mono<Long> customerNo = usersRepo.getUserNoByUserId(payment.getCustomerId());
+
+        return Mono.zip(invoiceNo, customerNo)
+                .map(tuple -> paymentMapper.topaymentResDTO(payment, tuple.getT2(), tuple.getT1()));
+    }
+
+    public Mono<DetailedPaymentResDTO> getDetailedPayment(Long paymentNo) {
+        return paymentsRepo.getDetailedPaymentByPaymentNo(paymentNo)
+            .switchIfEmpty(Mono.error(new ResourceNotFound("NOT_FOUND", "Payment not found")));
+    }
 
 }

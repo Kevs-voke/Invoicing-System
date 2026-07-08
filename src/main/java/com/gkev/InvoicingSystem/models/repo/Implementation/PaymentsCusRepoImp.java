@@ -27,6 +27,7 @@ public class PaymentsCusRepoImp implements PaymentsCusRepo {
     public Flux<PaymentCustResDTO> getPayments(PaymentsFilterDTO filter, int page, int size) {
         StringBuilder sql = new StringBuilder("""
         SELECT
+            p.payment_no,
             p.id,
             us.first_name,
             us.last_name,
@@ -92,6 +93,7 @@ public class PaymentsCusRepoImp implements PaymentsCusRepo {
 
         return spec.map(
             (row, meta) -> PaymentCustResDTO.builder()
+                    .paymentNo(row.get("payment_no", Long.class))
                     .id(row.get("id", UUID.class))
                     .customerNo(row.get("user_no", Long.class))
                     .firstName(row.get("first_name", String.class))

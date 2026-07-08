@@ -8,6 +8,7 @@ import java.util.UUID;
 
 @Builder
 public record PaymentCustResDTO(
+    Long paymentNo,
     UUID id,
     String firstName,
     String lastName,

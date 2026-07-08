@@ -8,8 +8,12 @@ public record DetailedPaymentResDTO(
         Long customerNo,
         String firstName,
         String lastName,
+        String email,
+        String phoneNumber,
         Long invoiceNo,
         String invoiceStatus,
+        LocalDateTime invoiceCreatedAt,
+        LocalDateTime invoiceDueDate,
         BigDecimal invoiceTotal,
         BigDecimal invoiceBalance,
         BigDecimal amount,
@@ -17,5 +21,12 @@ public record DetailedPaymentResDTO(
         String transactionRef,
         String notes,
         String status,
-        LocalDateTime paymentAt
+        LocalDateTime paymentAt,
+        LocalDateTime createdAt,
+        LocalDateTime confirmedAt,
+        String confirmedByFirstName,
+        String confirmedByLastName,
+        LocalDateTime failedAt,
+        String failedByFirstName,
+        String failedByLastName
 ) {}

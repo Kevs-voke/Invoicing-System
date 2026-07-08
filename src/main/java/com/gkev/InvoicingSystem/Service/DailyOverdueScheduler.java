@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class DailyOverdueScheduler {
 
-    private static final String DEFAULT_CRON = "0 0 8 * * ?";
+    private static final String DEFAULT_CRON = "0 53 16 * * ?";
 
     private final MainSchedulerService mainScheduler;
     private final SchedulerConfigRepo schedulerConfigRepo;

@@ -17,11 +17,15 @@ public interface PaymentsRepo extends ReactiveCrudRepository<PaymentEntity, UUID
     @Query("""
         SELECT
             p.payment_no,
-            us.user_no        AS customer_no,
+            us.user_no          AS customer_no,
             us.first_name,
             us.last_name,
+            us.email,
+            us.phone_number,
             inv.invoice_no,
-            inv.status         AS invoice_status,
+            inv.status           AS invoice_status,
+            inv.created_at       AS invoice_created_at,
+            inv.due_date         AS invoice_due_date,
             COALESCE(inv.total, 0)                    AS invoice_total,
             COALESCE(inv.total - inv.amount_paid, 0)  AS invoice_balance,
             p.amount,
@@ -29,10 +33,19 @@ public interface PaymentsRepo extends ReactiveCrudRepository<PaymentEntity, UUID
             p.transaction_ref,
             p.notes,
             p.status,
-            p.payment_at
+            p.payment_at,
+            p.created_at,
+            p.confirmed_at,
+            conf.first_name       AS confirmed_by_first_name,
+            conf.last_name        AS confirmed_by_last_name,
+            p.failed_at,
+            fail_u.first_name     AS failed_by_first_name,
+            fail_u.last_name      AS failed_by_last_name
         FROM payments p
-        JOIN users us    ON p.customer_id = us.id
-        JOIN invoice inv ON p.invoice_id = inv.id
+        JOIN users us              ON p.customer_id = us.id
+        JOIN invoice inv           ON p.invoice_id = inv.id
+        LEFT JOIN users conf       ON p.confirmed_by = conf.id
+        LEFT JOIN users fail_u     ON p.failed_by = fail_u.id
         WHERE p.payment_no = :paymentNo;
         """)
     Mono<DetailedPaymentResDTO> getDetailedPaymentByPaymentNo(Long paymentNo);
