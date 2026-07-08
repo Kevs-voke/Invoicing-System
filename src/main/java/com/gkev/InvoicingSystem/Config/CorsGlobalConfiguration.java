@@ -17,7 +17,7 @@ import java.util.List;
         public CorsWebFilter corsWebFilter() {
             CorsConfiguration corsConfig = new CorsConfiguration();
             corsConfig.setAllowedOrigins(List.of("http://localhost:5173"));
-            corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE"));
+            corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE"));
             corsConfig.setAllowedHeaders(List.of("*"));
             corsConfig.setAllowCredentials(true);
 
@@ -27,4 +27,3 @@ import java.util.List;
             return new CorsWebFilter(source);
         }
     }
-

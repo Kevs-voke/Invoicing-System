@@ -6,7 +6,10 @@ import com.gkev.InvoicingSystem.Service.MyUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
 import org.springframework.security.config.Customizer;
@@ -15,6 +18,9 @@ import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import reactor.core.publisher.Mono;
+
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 @EnableReactiveMethodSecurity
@@ -30,6 +36,24 @@ public class SecurityConfig {
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .cors(Customizer.withDefaults())
+                .exceptionHandling(exceptions -> exceptions
+                        // 401: no/invalid credentials — plain JSON, no WWW-Authenticate: Basic header
+                        .authenticationEntryPoint((exchange, ex) -> {
+                            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                            exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
+                            byte[] body = "{\"error\":\"UNAUTHORIZED\",\"message\":\"Authentication required\"}".getBytes(StandardCharsets.UTF_8);
+                            DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(body);
+                            return exchange.getResponse().writeWith(Mono.just(buffer));
+                        })
+                        // 403: authenticated but lacks the required role (e.g. @PreAuthorize failure)
+                        .accessDeniedHandler((exchange, denied) -> {
+                            exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
+                            exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
+                            byte[] body = "{\"error\":\"FORBIDDEN\",\"message\":\"You do not have permission to perform this action\"}".getBytes(StandardCharsets.UTF_8);
+                            DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(body);
+                            return exchange.getResponse().writeWith(Mono.just(buffer));
+                        })
+                )
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .pathMatchers("/auth/**").permitAll()
