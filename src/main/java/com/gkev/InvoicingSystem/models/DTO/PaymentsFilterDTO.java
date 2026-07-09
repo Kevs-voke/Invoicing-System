@@ -9,6 +9,7 @@ import java.time.LocalDate;
 public record PaymentsFilterDTO(
     Long customerNo,
     Long invoiceNo,
+    Long paymentNo,
     String firstName,
     String lastName,
     String paymentMethod,
@@ -37,6 +38,9 @@ public record PaymentsFilterDTO(
     }
     public boolean hasInvoiceNo() {
         return invoiceNo != null;
+    }
+    public boolean hasPaymentNo() {
+        return paymentNo != null;
     }
     public boolean hasFirstName() {
         return firstName != null && !firstName.isBlank();

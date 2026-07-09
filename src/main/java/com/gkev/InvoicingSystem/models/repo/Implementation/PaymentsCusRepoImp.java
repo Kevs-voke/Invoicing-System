@@ -53,6 +53,10 @@ public class PaymentsCusRepoImp implements PaymentsCusRepo {
             sql.append(" AND inv.invoice_no = :invoiceNo");
             params.put("invoiceNo", filter.invoiceNo());
         }
+        if (filter.hasPaymentNo()) {
+            sql.append(" AND p.payment_no = :paymentNo");
+            params.put("paymentNo", filter.paymentNo());
+        }
         if (filter.hasFirstName()) {
             sql.append(" AND us.first_name = :firstName");
             params.put("firstName", filter.firstName());
