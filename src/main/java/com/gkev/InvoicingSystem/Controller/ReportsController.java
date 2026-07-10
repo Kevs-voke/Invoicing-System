@@ -1,6 +1,4 @@
 package com.gkev.InvoicingSystem.Controller;
-
-<<<<<<< Updated upstream
 import com.gkev.InvoicingSystem.Service.ReportsService;
 import com.gkev.InvoicingSystem.models.DTO.PaymentMethodBreakdownDTO;
 import com.gkev.InvoicingSystem.models.DTO.ReportsFilterDTO;
@@ -51,18 +49,5 @@ public class ReportsController  {
                 .map(ResponseEntity::ok);
     }
 }
-=======
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import reactor.core.publisher.Mono;
 
-@Controller
-@RequestMapping("/reports")
-public class ReportsController {
-    @GetMapping
-    public Mono<String> reports() {
-        return Mono.just("index.html");
-    }
-}
->>>>>>> Stashed changes
+

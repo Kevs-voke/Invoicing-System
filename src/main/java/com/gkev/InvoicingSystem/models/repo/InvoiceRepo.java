@@ -132,8 +132,8 @@ Mono<Long> getInvoiceNoByInvoiceId(UUID id);
                     COALESCE(SUM(inv.total) FILTER (WHERE LOWER(inv.status) = 'pending'), 0) AS current_total,
                     COALESCE(COUNT(inv.id) FILTER (WHERE LOWER(inv.status) = 'pending'), 0) AS current_count
                 FROM invoice inv
-                WHERE inv.created_at >= date_trunc('month', :referenceDate)) - INTERVAL '1 month'
-                  AND inv.created_at <  date_trunc('month', :referenceDate))
+                WHERE inv.created_at >= date_trunc('month', CURRENT_DATE)) - INTERVAL '1 month'
+                  AND inv.created_at <  date_trunc('month', CURRENT_DATE))
             ) agg
             CROSS JOIN (
                 SELECT json_agg(
@@ -154,8 +154,8 @@ Mono<Long> getInvoiceNoByInvoiceId(UUID id);
                     LEFT JOIN invoice inv\s
                         ON usr.id = inv.cust_id
                         AND LOWER(inv.status) IN ('overdue', 'pending', 'paid')
-                        AND inv.created_at >= date_trunc('month', :referenceDate)) - INTERVAL '1 month'
-                        AND inv.created_at <  date_trunc('month', :referenceDate))
+                        AND inv.created_at >= date_trunc('month', CURRENT_DATE)) - INTERVAL '1 month'
+                        AND inv.created_at <  date_trunc('month', CURRENT_DATE))
                     GROUP BY usr.user_no, usr.first_name, usr.last_name
                     ORDER BY total_value DESC
                     LIMIT 5
@@ -163,7 +163,7 @@ Mono<Long> getInvoiceNoByInvoiceId(UUID id);
             ) tc
             CROSS JOIN (VALUES(1)) AS dummy(x);
             """)
-    Mono<InvoiceSummaryReportDb>  getInvoiceMonthlySummaryReport(LocalDate referenceDate);
+    Mono<InvoiceSummaryReportDb>  getInvoiceMonthlySummaryReport( );
 
 
 }

@@ -17,7 +17,6 @@
 
     import java.math.BigDecimal;
     import java.sql.Timestamp;
-    import java.time.LocalDate;
     import java.util.List;
     import java.util.UUID;
 
@@ -208,8 +207,8 @@ private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
         return invoiceRepo.getOverdueInvoiceCust();
     }
 
-    public Mono<InvoiceSummaryReport> getInvoiceSummaryReport(LocalDate referenceDate) {
-        return invoiceRepo.getInvoiceMonthlySummaryReport(referenceDate)
+    public Mono<InvoiceSummaryReport> getInvoiceSummaryReport() {
+        return invoiceRepo.getInvoiceMonthlySummaryReport()
                 .switchIfEmpty(Mono.error(()-> new ResourceNotFound("NOT_FOUND", "Monthly Summary Report could not found")))
                 .flatMap(report -> Mono.fromCallable(
                         () -> {

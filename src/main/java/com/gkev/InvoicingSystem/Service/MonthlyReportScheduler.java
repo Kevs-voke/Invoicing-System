@@ -13,7 +13,7 @@ public class MonthlyReportScheduler {
     public void init() {
         mainSchedulerService.scheduleJob(
                 MonthlySummaryJob.class,
-                "0 0 1 * *",
+                "0 0 0 1 * ?",
                 "monthlyscheduler"
         );
     }
