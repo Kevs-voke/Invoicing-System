@@ -1,9 +1,8 @@
 package com.gkev.InvoicingSystem.Config;
 
-
 import com.gkev.InvoicingSystem.Filters.JwtAuthFilter;
+import com.gkev.InvoicingSystem.Service.JwtService;
 import com.gkev.InvoicingSystem.Service.MyUserDetailsService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -24,20 +23,26 @@ import java.nio.charset.StandardCharsets;
 
 @Configuration
 @EnableReactiveMethodSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthFilter jwtAuthFilter;
+    private final JwtService jwtService;
+    private final MyUserDetailsService myUserDetailsService;
+
+    public SecurityConfig(JwtService jwtService, MyUserDetailsService myUserDetailsService) {
+        this.jwtService = jwtService;
+        this.myUserDetailsService = myUserDetailsService;
+    }
 
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
+        JwtAuthFilter jwtAuthFilter = new JwtAuthFilter(jwtService, myUserDetailsService);
+
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
                 .cors(Customizer.withDefaults())
                 .exceptionHandling(exceptions -> exceptions
-                        // 401: no/invalid credentials — plain JSON, no WWW-Authenticate: Basic header
                         .authenticationEntryPoint((exchange, ex) -> {
                             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                             exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
@@ -45,7 +50,6 @@ public class SecurityConfig {
                             DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(body);
                             return exchange.getResponse().writeWith(Mono.just(buffer));
                         })
-                        // 403: authenticated but lacks the required role (e.g. @PreAuthorize failure)
                         .accessDeniedHandler((exchange, denied) -> {
                             exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
                             exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
@@ -69,7 +73,6 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder(12);
     }
 
-
     @Bean
     public ReactiveAuthenticationManager authManager(MyUserDetailsService userDetailsService) {
         UserDetailsRepositoryReactiveAuthenticationManager manager =
@@ -78,4 +81,3 @@ public class SecurityConfig {
         return manager;
     }
 }
-
