@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" >
+<head>
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet">
+    <meta charset="UTF-8">
+    <script src="http://localhost:35729/livereload.js"> </script>
+    <style>
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            color: #1a1a2e;
+            padding: 40px;
+        }
+        .subtitle {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        .metric-label {
+            font-size: 0.7rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .metric-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+        .card-revenue   { background-color: #f7f7fb; border-color: #e0e0e8; }
+        .card-overall   { background-color: #f7f7fb; border-color: #e0e0e8; }
+        .card-current   { background-color: #f0f7f0; border-color: #d7ead7; }
+        .card-overdue   { background-color: #fbf0f0; border-color: #f0d7d7; }
+        .table thead th {
+            background-color: #1a1a2e;
+            color: #ffffff;
+            font-size: 0.8rem;
+        }
+        .table td, .table th {
+            font-size: 0.85rem;
+            vertical-align: middle;
+        }
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+        }
+        </style>
+</head>
+<body>
+<div class="container-fluid" style="max-width: 800px;">
+
+    <!-- Header -->
+    <h1 class="h4 mb-0">Imara Bill Invoice Summary Report</h1>
+    <div class="subtitle mb-3">
+        Period: <span th:text="${reportPeriod}">June 2026</span>
+        &nbsp;|&nbsp;
+        Generated: <span th:text="${#temporals.format(generatedOn, 'MMMM dd, yyyy')}">July 09, 2026</span>
+    </div>
+    <hr class="mt-0" />
+
+    <!-- Total Revenue -->
+    <div class="card card-revenue p-3">
+        <div class="metric-label">Total Revenue</div>
+        <div class="metric-value"
+             th:text="${'KES ' + #numbers.formatDecimal(totalRevenue, 1, 'COMMA', 2, 'POINT')}">
+            KES 184,320.50
+        </div>
+    </div>
+
+    <!-- Outstanding Invoices -->
+    <div class="section-title">Outstanding Invoices</div>
+    <div class="row g-2">
+        <div class="col-4">
+            <div class="card card-overall p-3 h-100">
+                <div class="metric-label">Overall Outstanding</div>
+                <div class="metric-value"
+                     th:text="${'KES ' + #numbers.formatDecimal(outstandingTotal, 1, 'COMMA', 2, 'POINT')}">
+                    KES 42,150.00
+                </div>
+                <div class="metric-label mt-2" th:text="${outstandingCount + ' invoices total'}">
+                    17 invoices total
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card card-current p-3 h-100">
+                <div class="metric-label">Current (not yet due)</div>
+                <div class="metric-value"
+                     th:text="${'KES ' + #numbers.formatDecimal(currentTotal, 1, 'COMMA', 2, 'POINT')}">
+                    KES 26,400.00
+                </div>
+                <div class="metric-label mt-2" th:text="${currentCount + ' invoices'}">
+                    11 invoices
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card card-overdue p-3 h-100">
+                <div class="metric-label">Overdue (past due date)</div>
+                <div class="metric-value"
+                     th:text="${'KES ' + #numbers.formatDecimal(overdueTotal, 1, 'COMMA', 2, 'POINT')}">
+                    KES 15,750.00
+                </div>
+                <div class="metric-label mt-2" th:text="${overdueCount + ' invoices'}">
+                    6 invoices
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top 5 Customers -->
+    <div class="section-title">Top 5 Customers by Value</div>
+    <table class="table table-bordered table-striped mb-0">
+        <thead>
+        <tr>
+            <th>Cust. #</th>
+            <th>Customer</th>
+            <th class="text-center">Invoices</th>
+            <th class="text-end">Total Value</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="customer : ${topCustomers}">
+            <td th:text="${customer.customerNo}"></td>
+            <td th:text="${customer.name}"></td>
+            <td class="text-center" th:text="${customer.invoiceCount}"></td>
+            <td class="text-end"
+                th:text="${'KES ' + #numbers.formatDecimal(customer.totalValue, 1, 'COMMA', 2, 'POINT')}">
+
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="text-muted mt-4 pt-2 border-top" style="font-size: 0.7rem;">
+        Generated automatically — figures reflect data as of report generation time.
+    </div>
+
+</div>
+</body>
+</html>

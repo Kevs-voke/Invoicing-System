@@ -17,6 +17,7 @@
 
     import java.math.BigDecimal;
     import java.sql.Timestamp;
+    import java.time.LocalDate;
     import java.util.List;
     import java.util.UUID;
 
@@ -196,10 +197,35 @@
             throw new RuntimeException("Failed to parse Invoice Items JSON", e);
         }
     }
-
+private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
+        try {
+            return objectMapper.readValue(json, new TypeReference<>() {});
+        }catch (Exception e) {
+            throw new RuntimeException("Failed to parse Top Customer Records JSON", e);
+        }
+}
     public Flux<OverdueInvoiceDTO> getOverdueInvoiceCust() {
-       return invoiceRepo.getOverdueInvoiceCust();
+        return invoiceRepo.getOverdueInvoiceCust();
     }
 
+    public Mono<InvoiceSummaryReport> getInvoiceSummaryReport(LocalDate referenceDate) {
+        return invoiceRepo.getInvoiceMonthlySummaryReport(referenceDate)
+                .switchIfEmpty(Mono.error(()-> new ResourceNotFound("NOT_FOUND", "Monthly Summary Report could not found")))
+                .flatMap(report -> Mono.fromCallable(
+                        () -> {
+                            List<TopCustomerRecords>  topCustomerRecords =parseTopCustomerRecords(report.topCustomerRecords());
+                            return new InvoiceSummaryReport(
+                                    report.reportPeriod(),
+                                    report.generatedOn(),
+                                    report.totalRevenue(),
+                                    report.outstandingTotal(),
+                                    report.currentTotal(),
+                                    report.currentCount(),
+                                    report.overdueCount(),
+                                    topCustomerRecords
+                            );
+                        }
+                ));
+    }
 
 }
