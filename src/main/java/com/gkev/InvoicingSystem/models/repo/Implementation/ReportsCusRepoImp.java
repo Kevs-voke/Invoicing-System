@@ -25,86 +25,96 @@ public class ReportsCusRepoImp implements ReportsCusRepo {
 
     private final DatabaseClient client;
 
-    @Override
-    public Mono<ReportsSummaryDTO> getSummary(ReportsFilterDTO filter) {
-        LocalDate from = filter.from();
-        LocalDate toExclusive = filter.to().plusDays(1);
-        long periodDays = ChronoUnit.DAYS.between(from, toExclusive);
-        LocalDate priorFrom = from.minusDays(periodDays);
-        LocalDate priorToExclusive = from;
+@Override
+public Mono<ReportsSummaryDTO> getSummary(ReportsFilterDTO filter) {
+    LocalDate from = filter.from();
+    LocalDate toExclusive = filter.to().plusDays(1);
+    long periodDays = ChronoUnit.DAYS.between(from, toExclusive);
+    LocalDate priorFrom = from.minusDays(periodDays);
+    LocalDate priorToExclusive = from;
 
-        String sql = """
-            SELECT
-              COALESCE(SUM(CASE WHEN p.payment_at >= :from AND p.payment_at < :toExclusive THEN p.amount ELSE 0 END), 0) AS current_payments,
-              COALESCE(SUM(CASE WHEN p.payment_at >= :priorFrom AND p.payment_at < :priorToExclusive THEN p.amount ELSE 0 END), 0) AS prior_payments
-            FROM payments p
-            WHERE p.status = 'confirmed'
-              AND p.payment_at >= :priorFrom AND p.payment_at < :toExclusive
-            """;
+    String sql = """
+        SELECT
+          COALESCE(SUM(CASE WHEN p.payment_at >= :from AND p.payment_at < :toExclusive THEN p.amount ELSE 0 END), 0) AS current_payments,
+          COALESCE(SUM(CASE WHEN p.payment_at >= :priorFrom AND p.payment_at < :priorToExclusive THEN p.amount ELSE 0 END), 0) AS prior_payments
+        FROM payments p
+        WHERE p.status = 'confirmed'
+          AND p.payment_at >= :priorFrom AND p.payment_at < :toExclusive
+        """;
 
-        String invoiceSql = """
-            SELECT
-              COUNT(CASE WHEN created_at >= :from AND created_at < :toExclusive THEN 1 END) AS current_invoices,
-              COUNT(CASE WHEN created_at >= :priorFrom AND created_at < :priorToExclusive THEN 1 END) AS prior_invoices
-            FROM invoice
-            WHERE created_at >= :priorFrom AND created_at < :toExclusive
-            """;
+    String invoiceSql = """
+        SELECT
+          COUNT(CASE WHEN created_at >= :from AND created_at < :toExclusive THEN 1 END) AS current_invoices,
+          COUNT(CASE WHEN created_at >= :priorFrom AND created_at < :priorToExclusive THEN 1 END) AS prior_invoices,
+          COALESCE(SUM(CASE WHEN created_at >= :from AND created_at < :toExclusive THEN total ELSE 0 END), 0) AS current_revenue,
+          COALESCE(SUM(CASE WHEN created_at >= :priorFrom AND created_at < :priorToExclusive THEN total ELSE 0 END), 0) AS prior_revenue
+        FROM invoice
+        WHERE created_at >= :priorFrom AND created_at < :toExclusive
+        """;
 
-        String outstandingSql = """
-            SELECT
-              COALESCE(SUM(CASE WHEN created_at < :toExclusive THEN (total - amount_paid) ELSE 0 END), 0) AS current_outstanding,
-              COALESCE(SUM(CASE WHEN created_at < :priorToExclusive THEN (total - amount_paid) ELSE 0 END), 0) AS prior_outstanding
-            FROM invoice
-            WHERE status <> 'PAID'
-            """;
+    String outstandingSql = """
+        SELECT
+          COALESCE(SUM(CASE WHEN created_at < :toExclusive THEN (total - amount_paid) ELSE 0 END), 0) AS current_outstanding,
+          COALESCE(SUM(CASE WHEN created_at < :priorToExclusive THEN (total - amount_paid) ELSE 0 END), 0) AS prior_outstanding
+        FROM invoice
+        WHERE status <> 'PAID'
+        """;
 
-        Mono<BigDecimal[]> paymentsMono = client.sql(sql)
-                .bind("from", from).bind("toExclusive", toExclusive)
-                .bind("priorFrom", priorFrom).bind("priorToExclusive", priorToExclusive)
-                .map((row, meta) -> new BigDecimal[]{
-                        row.get("current_payments", BigDecimal.class),
-                        row.get("prior_payments", BigDecimal.class)
-                }).one();
+    Mono<BigDecimal[]> paymentsMono = client.sql(sql)
+            .bind("from", from).bind("toExclusive", toExclusive)
+            .bind("priorFrom", priorFrom).bind("priorToExclusive", priorToExclusive)
+            .map((row, meta) -> new BigDecimal[]{
+                    row.get("current_payments", BigDecimal.class),
+                    row.get("prior_payments", BigDecimal.class)
+            }).one();
 
-        Mono<Long[]> invoicesMono = client.sql(invoiceSql)
-                .bind("from", from).bind("toExclusive", toExclusive)
-                .bind("priorFrom", priorFrom).bind("priorToExclusive", priorToExclusive)
-                .map((row, meta) -> new Long[]{
-                        row.get("current_invoices", Long.class),
-                        row.get("prior_invoices", Long.class)
-                }).one();
+    Mono<Object[]> invoicesMono = client.sql(invoiceSql)
+            .bind("from", from).bind("toExclusive", toExclusive)
+            .bind("priorFrom", priorFrom).bind("priorToExclusive", priorToExclusive)
+            .map((row, meta) -> new Object[]{
+                    row.get("current_invoices", Long.class),
+                    row.get("prior_invoices", Long.class),
+                    row.get("current_revenue", BigDecimal.class),
+                    row.get("prior_revenue", BigDecimal.class)
+            }).one();
 
-        Mono<BigDecimal[]> outstandingMono = client.sql(outstandingSql)
-                .bind("toExclusive", toExclusive)
-                .bind("priorToExclusive", priorToExclusive)
-                .map((row, meta) -> new BigDecimal[]{
-                        row.get("current_outstanding", BigDecimal.class),
-                        row.get("prior_outstanding", BigDecimal.class)
-                }).one();
+    Mono<BigDecimal[]> outstandingMono = client.sql(outstandingSql)
+            .bind("toExclusive", toExclusive)
+            .bind("priorToExclusive", priorToExclusive)
+            .map((row, meta) -> new BigDecimal[]{
+                    row.get("current_outstanding", BigDecimal.class),
+                    row.get("prior_outstanding", BigDecimal.class)
+            }).one();
 
-        return Mono.zip(paymentsMono, invoicesMono, outstandingMono)
-                .map(tuple -> {
-                    BigDecimal[] payments = tuple.getT1();
-                    Long[] invoices = tuple.getT2();
-                    BigDecimal[] outstanding = tuple.getT3();
+    return Mono.zip(paymentsMono, invoicesMono, outstandingMono)
+            .map(tuple -> {
+                BigDecimal[] payments = tuple.getT1();
+                Object[] invoices = tuple.getT2();
+                BigDecimal[] outstanding = tuple.getT3();
 
-                    BigDecimal currentPayments = payments[0];
-                    BigDecimal priorPayments = payments[1];
-                    BigDecimal currentOutstanding = outstanding[0];
-                    BigDecimal priorOutstanding = outstanding[1];
+                BigDecimal currentPayments = payments[0];
+                BigDecimal priorPayments = payments[1];
 
-                    return ReportsSummaryDTO.builder()
-                            .totalRevenue(currentPayments)
-                            .revenueChangePct(pctChange(currentPayments, priorPayments))
-                            .totalPayments(currentPayments)
-                            .paymentsChangePct(pctChange(currentPayments, priorPayments))
-                            .totalInvoices(invoices[0])
-                            .invoicesChangePct(pctChange(BigDecimal.valueOf(invoices[0]), BigDecimal.valueOf(invoices[1])))
-                            .outstandingAmount(currentOutstanding)
-                            .outstandingChangePct(pctChange(currentOutstanding, priorOutstanding))
-                            .build();
-                });
-    }
+                Long currentInvoices = (Long) invoices[0];
+                Long priorInvoices = (Long) invoices[1];
+                BigDecimal currentRevenue = (BigDecimal) invoices[2];
+                BigDecimal priorRevenue = (BigDecimal) invoices[3];
+
+                BigDecimal currentOutstanding = outstanding[0];
+                BigDecimal priorOutstanding = outstanding[1];
+
+                return ReportsSummaryDTO.builder()
+                        .totalRevenue(currentRevenue)
+                        .revenueChangePct(pctChange(currentRevenue, priorRevenue))
+                        .totalPayments(currentPayments)
+                        .paymentsChangePct(pctChange(currentPayments, priorPayments))
+                        .totalInvoices(currentInvoices)
+                        .invoicesChangePct(pctChange(BigDecimal.valueOf(currentInvoices), BigDecimal.valueOf(priorInvoices)))
+                        .outstandingAmount(currentOutstanding)
+                        .outstandingChangePct(pctChange(currentOutstanding, priorOutstanding))
+                        .build();
+            });
+}
 
     @Override
     public Flux<RevenuePointDTO> getRevenueSeries(ReportsFilterDTO filter) {
