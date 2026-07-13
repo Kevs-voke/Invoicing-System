@@ -27,6 +27,9 @@
     import tools.jackson.core.type.TypeReference;
     import tools.jackson.databind.ObjectMapper;
 
+    import tools.jackson.databind.json.JsonMapper;
+    import tools.jackson.databind.PropertyNamingStrategies;
+
 
     @Service
     @RequiredArgsConstructor
@@ -37,6 +40,9 @@
     private final Logger logger = LoggerFactory.getLogger(InvoiceService.class);
     private final InvoicesCusRepo invoicesCusRepo;
     private final ObjectMapper objectMapper;
+    private final ObjectMapper snakeCaseMapper = JsonMapper.builder()
+            .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+            .build();
 
 
     public Mono<InvoiceRespDTO> createInvoice(InvoiceDTO invoiceDTO) {
@@ -197,7 +203,7 @@
     }
 private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
         try {
-            return objectMapper.readValue(json, new TypeReference<>() {});
+            return snakeCaseMapper.readValue(json, new TypeReference<>() {});
         }catch (Exception e) {
             throw new RuntimeException("Failed to parse Top Customer Records JSON", e);
         }
@@ -211,6 +217,10 @@ private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
                 .switchIfEmpty(Mono.error(()-> new ResourceNotFound("NOT_FOUND", "Monthly Summary Report could not found")))
                 .flatMap(report -> Mono.fromCallable(
                         () -> {
+                            if (report.topCustomerRecords() == null) {
+                                logger.warn("Top customer records are null in the report for period: {}", report.reportPeriod());
+                            }
+                            logger.info("{}", report.topCustomerRecords());
                             List<TopCustomerRecords>  topCustomerRecords =parseTopCustomerRecords(report.topCustomerRecords());
                             return new InvoiceSummaryReport(
                                     report.reportPeriod(),
