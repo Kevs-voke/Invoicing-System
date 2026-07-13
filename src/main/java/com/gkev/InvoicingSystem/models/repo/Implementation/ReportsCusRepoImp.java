@@ -116,33 +116,45 @@ public Mono<ReportsSummaryDTO> getSummary(ReportsFilterDTO filter) {
             });
 }
 
-    @Override
+   @Override
     public Flux<RevenuePointDTO> getRevenueSeries(ReportsFilterDTO filter) {
-        String truncUnit = switch (filter.granularity()) {
-            case DAILY -> "day";
-            case WEEKLY -> "week";
-            case MONTHLY -> "month";
-        };
-        LocalDate toExclusive = filter.to().plusDays(1);
+    String truncUnit = switch (filter.granularity()) {
+        case DAILY -> "day";
+        case WEEKLY -> "week";
+        case MONTHLY -> "month";
+    };
+    String step = switch (filter.granularity()) {
+        case DAILY -> "1 day";
+        case WEEKLY -> "1 week";
+        case MONTHLY -> "1 month";
+    };
+    LocalDate toExclusive = filter.to().plusDays(1);
 
-        String sql = """
-            SELECT date_trunc('%s', p.payment_at)::date AS bucket_date, SUM(p.amount) AS amount
-            FROM payments p
-            WHERE p.status = 'confirmed'
-              AND p.payment_at >= :from AND p.payment_at < :toExclusive
-            GROUP BY bucket_date
-            ORDER BY bucket_date
-            """.formatted(truncUnit);
+    String sql = """
+        SELECT gs.bucket_date::date AS bucket_date, COALESCE(SUM(p.amount), 0) AS amount
+        FROM generate_series(
+            date_trunc('%s', :from::timestamp),
+            date_trunc('%s', (:toExclusive::date - interval '1 day')),
+            :step::interval
+        ) AS gs(bucket_date)
+        LEFT JOIN payments p
+          ON date_trunc('%s', p.payment_at) = gs.bucket_date
+          AND p.status = 'confirmed'
+          AND p.payment_at >= :from AND p.payment_at < :toExclusive
+        GROUP BY gs.bucket_date
+        ORDER BY gs.bucket_date
+        """.formatted(truncUnit, truncUnit, truncUnit);
 
-        return client.sql(sql)
-                .bind("from", filter.from())
-                .bind("toExclusive", toExclusive)
-                .map((row, meta) -> RevenuePointDTO.builder()
-                        .bucketDate(row.get("bucket_date", LocalDate.class))
-                        .amount(row.get("amount", BigDecimal.class))
-                        .build())
-                .all();
-    }
+    return client.sql(sql)
+            .bind("from", filter.from())
+            .bind("toExclusive", toExclusive)
+            .bind("step", step)
+            .map((row, meta) -> RevenuePointDTO.builder()
+                    .bucketDate(row.get("bucket_date", LocalDate.class))
+                    .amount(row.get("amount", BigDecimal.class))
+                    .build())
+            .all();
+}
 
     @Override
     public Flux<PaymentMethodBreakdownDTO> getPaymentsByMethod(ReportsFilterDTO filter) {
