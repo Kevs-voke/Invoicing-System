@@ -130,11 +130,10 @@
                     });                 
                 });
     }
-    public Flux<InvoiceCustResDTO> getInvoices(InvoicesFilterDTO filter, int page, int size) {
-        logger.info("Query for invoices with filters has started");
-        return invoicesCusRepo.getInvoices(filter, page, size)
-                .switchIfEmpty(Mono.error(() -> new ResourceNotFound("NOT_FOUND", " Invoices records could not be found")))
-                .doOnComplete(() -> logger.info("Invoices records found  "));
+   public Flux<InvoiceCustResDTO> getInvoices(InvoicesFilterDTO filter, int page, int size) {
+    logger.info("Query for invoices with filters has started");
+    return invoicesCusRepo.getInvoices(filter, page, size)
+            .doOnComplete(() -> logger.info("Invoices query completed"));
     }
     public Mono<InvoiceDashboardStatsDTO> getInvoiceDashboardStats() {
         logger.info("Query for invoices dashboard stats has started");

@@ -3,6 +3,7 @@ package com.gkev.InvoicingSystem.Service;
 import com.gkev.InvoicingSystem.models.DTO.PaymentMethodBreakdownDTO;
 import com.gkev.InvoicingSystem.models.DTO.ReportsFilterDTO;
 import com.gkev.InvoicingSystem.models.DTO.ReportsSummaryDTO;
+import com.gkev.InvoicingSystem.models.DTO.OverdueSummaryDTO;
 import com.gkev.InvoicingSystem.models.DTO.RevenuePointDTO;
 import com.gkev.InvoicingSystem.models.DTO.TopCustomerDTO;
 import com.gkev.InvoicingSystem.models.repo.ReportsCusRepo;
@@ -38,4 +39,8 @@ public class ReportsService {
         logger.info("Fetching top customers");
         return reportsCusRepo.getTopCustomers(filter, limit);
     }
+    public Mono<OverdueSummaryDTO> getOverdueSummary() {
+    logger.info("Fetching overdue summary");
+    return reportsCusRepo.getOverdueSummary();
+}
 }

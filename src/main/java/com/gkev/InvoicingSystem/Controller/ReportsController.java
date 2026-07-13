@@ -3,6 +3,7 @@ import com.gkev.InvoicingSystem.Service.ReportsService;
 import com.gkev.InvoicingSystem.models.DTO.PaymentMethodBreakdownDTO;
 import com.gkev.InvoicingSystem.models.DTO.ReportsFilterDTO;
 import com.gkev.InvoicingSystem.models.DTO.ReportsSummaryDTO;
+import com.gkev.InvoicingSystem.models.DTO.OverdueSummaryDTO;
 import com.gkev.InvoicingSystem.models.DTO.RevenuePointDTO;
 import com.gkev.InvoicingSystem.models.DTO.TopCustomerDTO;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +49,13 @@ public class ReportsController  {
                 .collectList()
                 .map(ResponseEntity::ok);
     }
+
+    @GetMapping("/overdue-summary")
+    public Mono<ResponseEntity<OverdueSummaryDTO>> getOverdueSummary() {
+    return reportsService.getOverdueSummary()
+            .map(ResponseEntity::ok);
 }
+}
+
 
 

@@ -3,6 +3,7 @@ package com.gkev.InvoicingSystem.models.repo.Implementation;
 import com.gkev.InvoicingSystem.models.DTO.PaymentMethodBreakdownDTO;
 import com.gkev.InvoicingSystem.models.DTO.ReportsFilterDTO;
 import com.gkev.InvoicingSystem.models.DTO.ReportsSummaryDTO;
+import com.gkev.InvoicingSystem.models.DTO.OverdueSummaryDTO;
 import com.gkev.InvoicingSystem.models.DTO.RevenuePointDTO;
 import com.gkev.InvoicingSystem.models.DTO.TopCustomerDTO;
 import com.gkev.InvoicingSystem.models.Enums.ReportGranularity;
@@ -238,6 +239,22 @@ public Mono<ReportsSummaryDTO> getSummary(ReportsFilterDTO filter) {
                         .build())
                 .all();
     }
+
+@Override
+public Mono<OverdueSummaryDTO> getOverdueSummary() {
+    String sql = """
+        SELECT COALESCE(SUM(total - amount_paid), 0) AS overdue_amount
+        FROM invoice
+        WHERE status = 'OVERDUE'
+        """;
+
+    return client.sql(sql)
+            .map((row, meta) -> row.get("overdue_amount", BigDecimal.class))
+            .one()
+            .map(amount -> OverdueSummaryDTO.builder()
+                    .overdueAmount(amount)
+                    .build());
+}
 
     private BigDecimal pctChange(BigDecimal current, BigDecimal prior) {
         if (prior == null || prior.compareTo(BigDecimal.ZERO) == 0) {
