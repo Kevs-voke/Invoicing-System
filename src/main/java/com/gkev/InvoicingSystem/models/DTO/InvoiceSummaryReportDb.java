@@ -10,8 +10,8 @@ public record InvoiceSummaryReportDb(
         BigDecimal totalRevenue,
         BigDecimal outstandingTotal,
         BigDecimal currentTotal,
-        int currentCount,
-        int overdueCount,
+        long currentCount,
+        long overdueCount,
         String topCustomerRecords
 
 ) {

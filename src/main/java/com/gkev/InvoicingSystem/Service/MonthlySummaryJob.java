@@ -46,7 +46,7 @@ public class MonthlySummaryJob implements Job {
                                                                     report.reportPeriod() + "_Monthly_report.pdf"
                                                             );
                                                         })
-                                                        .flatMap(summaryReport::sendEmail)
+                                                        .flatMap(summaryReport::sendEmailToOwners)
                                                 );
                                     })
                     )
