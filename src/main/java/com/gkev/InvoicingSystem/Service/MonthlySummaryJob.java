@@ -7,8 +7,12 @@ import lombok.RequiredArgsConstructor;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.spring6.SpringTemplateEngine;
+
+import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +24,7 @@ public class MonthlySummaryJob implements Job {
     private final SummaryInvoiceMapper invoiceMapper;
     private final SummaryReportEmailService summaryReport;
     private final OwnerReportMapper ownerReport;
+    private final Logger logger = LoggerFactory.getLogger(MonthlySummaryJob.class);
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
@@ -41,14 +46,15 @@ public class MonthlySummaryJob implements Job {
                                                                     report.reportPeriod() + "_Monthly_report.pdf"
                                                             );
                                                         })
-                                                        .flatMap(
-                                                                summaryReport::sendEmail
-                                                        )
+                                                        .flatMap(summaryReport::sendEmail)
                                                 );
-
-                                    }));
+                                    })
+                    )
+                    .then()
+                    .doOnSuccess(unused -> logger.info("Monthly summary report email sent successfully"))
+                    .block(Duration.ofSeconds(30));
         } catch (Exception e) {
-            throw new JobExecutionException("Failed to send overdue invoice reminders", e);
+            throw new JobExecutionException("Failed to send monthly summary report", e);
         }
     }
 }

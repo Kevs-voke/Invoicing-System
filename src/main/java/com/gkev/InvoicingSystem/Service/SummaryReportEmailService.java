@@ -18,7 +18,7 @@ import reactor.core.scheduler.Schedulers;
 public class SummaryReportEmailService implements EmailServiceSender {
 
     private final JavaMailSender javaMailSender;
-    private final UsersRepo usersRepo; // adjust to wherever getBusinessOwners() lives
+    private final UsersRepo usersRepo;
 
     @Override
     public Mono<Void> sendEmail(EmailMessage message) {
