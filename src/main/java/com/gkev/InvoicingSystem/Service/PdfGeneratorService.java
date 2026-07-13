@@ -10,7 +10,7 @@ import java.io.ByteArrayOutputStream;
 @Service
 public class PdfGeneratorService {
 
-    public Mono<byte[]> htmlToPdf(String html) {
+    public Mono<byte[]> invoiceSummaryHtmlToPdf(String html) {
         return Mono.fromCallable(() -> {
                     ByteArrayOutputStream out = new ByteArrayOutputStream();
                     HtmlConverter.convertToPdf(html, out);

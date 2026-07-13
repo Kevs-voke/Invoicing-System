@@ -4,6 +4,7 @@ import com.gkev.InvoicingSystem.models.DTO.CustDashboardStatsDTO;
 import com.gkev.InvoicingSystem.models.entity.UsersEntity;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 
@@ -49,4 +50,13 @@ Mono<CustDashboardStatsDTO> getCustomerDashboardStats();
          WHERE id = :id
         """)
 Mono<Long> getUserNoByUserId(UUID id);
+
+   @Query("""
+           SELECT u.email
+           FROM users u
+           JOIN user_with_roles uw ON u.id = uw.user_id
+           JOIN roles r ON r.id = uw.role_id
+           WHERE r.role_name = 'OWNER';
+           """)
+   Flux<String> getBusinessOwners();
 }
