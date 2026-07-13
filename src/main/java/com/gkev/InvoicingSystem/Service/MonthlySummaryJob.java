@@ -1,7 +1,7 @@
 package com.gkev.InvoicingSystem.Service;
 
 import com.gkev.InvoicingSystem.models.DTO.EmailMessage;
-import com.gkev.InvoicingSystem.models.DTO.OwnerReportMapper;
+import com.gkev.InvoicingSystem.models.Mapper.OwnerReportMapper;
 import com.gkev.InvoicingSystem.models.Mapper.SummaryInvoiceMapper;
 import lombok.RequiredArgsConstructor;
 import org.quartz.Job;
@@ -33,7 +33,7 @@ public class MonthlySummaryJob implements Job {
                     .flatMap(report ->
                             invoiceMapper.setData(report)
                                     .flatMap(invoiceContext -> {
-                                        String html = emailTemplateEngine.process("EmailConfirmation", invoiceContext);
+                                        String html = emailTemplateEngine.process("summaryInvoiceReport", invoiceContext);
                                         return pdfGeneratorService.invoiceSummaryHtmlToPdf(html)
                                                 .flatMap(pdf -> ownerReport.setData(report)
                                                         .map(summaryEmail -> {
