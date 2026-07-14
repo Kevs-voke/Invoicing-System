@@ -230,6 +230,8 @@ private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
                                     report.currentTotal(),
                                     report.currentCount(),
                                     report.overdueCount(),
+                                    report.overdueTotal(),
+                                    report.outstandingCount(),
                                     topCustomerRecords
                             );
                         }

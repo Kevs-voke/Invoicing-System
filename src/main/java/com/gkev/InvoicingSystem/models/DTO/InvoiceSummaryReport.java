@@ -12,6 +12,8 @@ public record InvoiceSummaryReport(
         BigDecimal currentTotal,
         long currentCount,
         long overdueCount,
+        BigDecimal overdueTotal,
+        long outstandingCount,
         List<TopCustomerRecords> topCustomerRecords
 
 ) {

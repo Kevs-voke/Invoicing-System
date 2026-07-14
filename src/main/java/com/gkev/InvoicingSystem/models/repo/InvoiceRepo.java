@@ -25,18 +25,20 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
                     """
     )
     Mono<InvoiceDashboardStatsDTO> getInvoiceDashboardStats();
+
     @Query("""
             SELECT id
              FROM invoice
               WHERE invoice_no = :invoiceNo;
             """)
     Mono<UUID> getInvoiceIdByInvoiceNo(long invoiceNo);
+
     @Query("""
-        SELECT invoice_no
-         FROM invoice
-          WHERE id = :id;
-        """)
-Mono<Long> getInvoiceNoByInvoiceId(UUID id);
+            SELECT invoice_no
+             FROM invoice
+              WHERE id = :id;
+            """)
+    Mono<Long> getInvoiceNoByInvoiceId(UUID id);
 
     @Query("""
             SELECT EXISTS (
@@ -48,35 +50,35 @@ Mono<Long> getInvoiceNoByInvoiceId(UUID id);
     Mono<Boolean> invoiceExistsByUserId(UUID userId);
 
     @Query("""
-            SELECT
-            inv.invoice_no,
-            inv.status,
-            inv.due_date,
-            COALESCE(inv.total_tax,0)  AS total_tax,
-            COALESCE(inv.total,0) AS total,
-            COALESCE(inv.amount_paid,0) AS amount_paid,
-            COALESCE((inv.total - inv.amount_paid),0) AS balances,
+                        SELECT
+                        inv.invoice_no,
+                        inv.status,
+                        inv.due_date,
+                        COALESCE(inv.total_tax,0)  AS total_tax,
+                        COALESCE(inv.total,0) AS total,
+                        COALESCE(inv.amount_paid,0) AS amount_paid,
+                        COALESCE((inv.total - inv.amount_paid),0) AS balances,
             
-      COALESCE(json_agg(
-    json_build_object(
-        'itemName', items.item_name,
-        'unitPrice', items.unit_price,
-        'quantity', items.quantity,
-        'tax', items.tax,
-        'tax_total', COALESCE(items.tax_subtotal, 0),
-        'total', COALESCE(items.sub_total, 0)
-    )
-), '[]'::json) AS invoice_items
+                  COALESCE(json_agg(
+                json_build_object(
+                    'itemName', items.item_name,
+                    'unitPrice', items.unit_price,
+                    'quantity', items.quantity,
+                    'tax', items.tax,
+                    'tax_total', COALESCE(items.tax_subtotal, 0),
+                    'total', COALESCE(items.sub_total, 0)
+                )
+            ), '[]'::json) AS invoice_items
             
-            FROM invoice inv
-            JOIN invoice_items items ON inv.id =items.invoice_id
-            WHERE inv.id = :id
-            GROUP BY inv.invoice_no,
-            inv.status,
-            inv.due_date,
-            inv.total_tax,
-            inv.total,
-            inv.amount_paid;
+                        FROM invoice inv
+                        JOIN invoice_items items ON inv.id =items.invoice_id
+                        WHERE inv.id = :id
+                        GROUP BY inv.invoice_no,
+                        inv.status,
+                        inv.due_date,
+                        inv.total_tax,
+                        inv.total,
+                        inv.amount_paid;
             
             
             
@@ -102,63 +104,85 @@ Mono<Long> getInvoiceNoByInvoiceId(UUID id);
             """)
     Flux<OverdueInvoiceDTO> getOverdueInvoiceCust();
 
-   
+
     @Query("""
-    UPDATE invoice
-    SET amount_paid = COALESCE(amount_paid, 0) + :amount
-    WHERE id = :invoiceId
-    """)
+            UPDATE invoice
+            SET amount_paid = COALESCE(amount_paid, 0) + :amount
+            WHERE id = :invoiceId
+            """)
     Mono<Integer> incrementAmountPaid(UUID invoiceId, BigDecimal amount);
+
     @Query("""
-        SELECT
-            TO_CHAR(
-                date_trunc('month', CURRENT_DATE) - INTERVAL '1 month',
-                'FMMonth'
-            ) AS report_period,
-            NOW()::date AS generated_on,
-            agg.total_revenue,
-            agg.outstanding_total,
-            agg.current_total,
-            agg.overdue_count,
-            agg.current_count,
-            COALESCE(tc.top_customer_records, '[]'::json) AS top_customer_records
-        FROM (
             SELECT
-                COALESCE(SUM(inv.amount_paid), 0) AS total_revenue,
-                COALESCE(SUM(inv.total) FILTER (WHERE LOWER(inv.status) IN ('overdue', 'pending')), 0) AS outstanding_total,
-                COALESCE(COUNT(inv.id) FILTER (WHERE LOWER(inv.status) IN ('overdue', 'pending')), 0) AS overdue_count,
-                COALESCE(SUM(inv.total) FILTER (WHERE LOWER(inv.status) = 'pending'), 0) AS current_total,
-                COALESCE(COUNT(inv.id) FILTER (WHERE LOWER(inv.status) = 'pending'), 0) AS current_count
-            FROM invoice inv
-            WHERE inv.created_at >= date_trunc('month', CURRENT_DATE) - INTERVAL '1 month'
-              AND inv.created_at <  date_trunc('month', CURRENT_DATE)
-        ) agg
-        CROSS JOIN (
-            SELECT json_agg(
-                json_build_object(
-                    'customer_no', customer_no,
-                    'name', customer_name,
-                    'invoice_count', invoice_count,
-                    'total_value', total_value
-                )
-            ) AS top_customer_records
+                TO_CHAR(
+                    date_trunc('month', CURRENT_DATE) - INTERVAL '1 month',
+                    'FMMonth YYYY'
+                ) AS report_period,
+            
+                NOW()::date AS generated_on,
+            
+                COALESCE(agg.total_revenue, 0) AS total_revenue,
+                COALESCE(agg.outstanding_total, 0) AS outstanding_total,
+                COALESCE(agg.current_total, 0) AS current_total,
+                COALESCE(agg.overdue_total, 0) AS overdue_total,           -- ← Added
+                COALESCE(agg.outstanding_count, 0) AS outstanding_count,   -- ← Added
+                COALESCE(agg.current_count, 0) AS current_count,
+                COALESCE(agg.overdue_count, 0) AS overdue_count,
+            
+                COALESCE(tc.top_customer_records, '[]'::json) AS top_customer_records
+            
             FROM (
                 SELECT
-                    usr.user_no AS customer_no,
-                    COALESCE(usr.first_name, '') || ' ' || COALESCE(usr.last_name, '') AS customer_name,
-                    COALESCE(SUM(inv.total), 0) AS total_value,
-                    COALESCE(COUNT(inv.id), 0) AS invoice_count
-                FROM users usr
-                LEFT JOIN invoice inv
-                    ON usr.id = inv.cust_id
-                    AND LOWER(inv.status) IN ('overdue', 'pending', 'paid')
-                    AND inv.created_at >= date_trunc('month', CURRENT_DATE) - INTERVAL '1 month'
-                    AND inv.created_at <  date_trunc('month', CURRENT_DATE)
-                GROUP BY usr.user_no, usr.first_name, usr.last_name
-                ORDER BY total_value DESC
-                LIMIT 5
-            ) sub
-        ) tc;
-        """)
+                    COALESCE(SUM(inv.amount_paid), 0) AS total_revenue,
+            
+                    COALESCE(SUM(inv.total) FILTER (WHERE LOWER(inv.status) IN ('overdue', 'pending')), 0) 
+                        AS outstanding_total,
+            
+                    COALESCE(SUM(inv.total) FILTER (WHERE LOWER(inv.status) = 'pending'), 0) 
+                        AS current_total,
+            
+                    COALESCE(SUM(inv.total) FILTER (WHERE LOWER(inv.status) = 'overdue'), 0) 
+                        AS overdue_total,                                      -- ← Added
+            
+                    COALESCE(COUNT(inv.id) FILTER (WHERE LOWER(inv.status) IN ('overdue', 'pending')), 0) 
+                        AS outstanding_count,                                  -- ← Added
+            
+                    COALESCE(COUNT(inv.id) FILTER (WHERE LOWER(inv.status) = 'pending'), 0) 
+                        AS current_count,
+            
+                    COALESCE(COUNT(inv.id) FILTER (WHERE LOWER(inv.status) = 'overdue'), 0) 
+                        AS overdue_count
+            
+                FROM invoice inv
+                WHERE inv.created_at >= date_trunc('month', CURRENT_DATE) - INTERVAL '1 month'
+                  AND inv.created_at <  date_trunc('month', CURRENT_DATE)
+            ) agg
+            CROSS JOIN (
+                SELECT json_agg(
+                    json_build_object(
+                        'customer_no', customer_no,
+                        'name', customer_name,
+                        'invoice_count', invoice_count,
+                        'total_value', total_value
+                    )
+                ) AS top_customer_records
+                FROM (
+                    SELECT
+                        usr.user_no AS customer_no,
+                        COALESCE(usr.first_name, '') || ' ' || COALESCE(usr.last_name, '') AS customer_name,
+                        COALESCE(SUM(inv.total), 0) AS total_value,
+                        COALESCE(COUNT(inv.id), 0) AS invoice_count
+                    FROM users usr
+                    LEFT JOIN invoice inv
+                        ON usr.id = inv.cust_id
+                        AND LOWER(inv.status) IN ('overdue', 'pending', 'paid')
+                        AND inv.created_at >= date_trunc('month', CURRENT_DATE) - INTERVAL '1 month'
+                        AND inv.created_at <  date_trunc('month', CURRENT_DATE)
+                    GROUP BY usr.user_no, usr.first_name, usr.last_name
+                    ORDER BY total_value DESC
+                    LIMIT 5
+                ) sub
+            ) tc;
+            """)
     Mono<InvoiceSummaryReportDb> getInvoiceMonthlySummaryReport();
 }
