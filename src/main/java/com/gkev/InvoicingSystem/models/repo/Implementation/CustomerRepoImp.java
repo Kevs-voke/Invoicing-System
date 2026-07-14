@@ -1,6 +1,7 @@
 package com.gkev.InvoicingSystem.models.repo.Implementation;
 
 import com.gkev.InvoicingSystem.models.DTO.CusFilterDTO;
+import com.gkev.InvoicingSystem.models.DTO.CustomerDetailResDTO;
 import com.gkev.InvoicingSystem.models.DTO.CustomerInvoiceResDTO;
 import com.gkev.InvoicingSystem.models.repo.CustomerRepo;
 import lombok.RequiredArgsConstructor;
@@ -101,6 +102,34 @@ if (filter.hasCustomerNo()) {
                         .dueDate(row.get("due_date", LocalDate.class))
                         .build())
                 .all();
+    }
+
+    @Override
+    public Mono<CustomerDetailResDTO> findByUserNo(Long userNo) {
+        String sql = """
+                SELECT
+                    usr.user_no,
+                    usr.first_name,
+                    usr.last_name,
+                    usr.email,
+                    usr.phone_number
+                FROM users usr
+                INNER JOIN user_with_roles uw ON uw.user_id = usr.id
+                INNER JOIN roles r ON r.id = uw.role_id
+                WHERE r.role_name = 'CUSTOMER'
+                AND usr.user_no = :userNo
+                """;
+
+        return client.sql(sql)
+                .bind("userNo", userNo)
+                .map((row, meta) -> CustomerDetailResDTO.builder()
+                        .userNo(row.get("user_no", Long.class))
+                        .firstName(row.get("first_name", String.class))
+                        .lastName(row.get("last_name", String.class))
+                        .email(row.get("email", String.class))
+                        .phoneNumber(row.get("phone_number", String.class))
+                        .build())
+                .one();
     }
 
 }

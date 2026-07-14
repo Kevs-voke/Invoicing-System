@@ -6,6 +6,7 @@ import com.gkev.InvoicingSystem.models.DTO.CusFilterDTO;
 import com.gkev.InvoicingSystem.models.DTO.CusRegDTO;
 import com.gkev.InvoicingSystem.models.DTO.CustDashboardStatsDTO;
 import com.gkev.InvoicingSystem.models.DTO.CustomerInvoiceResDTO;
+import com.gkev.InvoicingSystem.models.DTO.CustomerDetailResDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -49,4 +50,10 @@ public class CustomerController {
                 .getCustDashboardStats()
                 .map(ResponseEntity::ok);
     }
+
+    @GetMapping("/{userNo}")
+    public Mono<ResponseEntity<CustomerDetailResDTO>> getCustomerDetail(@PathVariable Long userNo) {
+    return customerService.getCustomerByUserNo(userNo)
+            .map(ResponseEntity::ok);
+}
 }

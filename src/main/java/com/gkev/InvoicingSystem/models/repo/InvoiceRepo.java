@@ -133,7 +133,7 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
             
                                      FROM (
                                          SELECT
-                                             COALESCE(SUM(p.amount), 0) AS total_revenue,
+                                             COALESCE(SUM(inv.amount_paid), 0) AS total_revenue,
             
                                              COALESCE(SUM(inv.total) FILTER (WHERE LOWER(inv.status) IN ('overdue', 'pending')), 0)
                                                  AS outstanding_total,

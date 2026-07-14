@@ -3,6 +3,7 @@ package com.gkev.InvoicingSystem.Service;
 import com.gkev.InvoicingSystem.Exceptions.ResourceNotFound;
 import com.gkev.InvoicingSystem.models.DTO.CusFilterDTO;
 import com.gkev.InvoicingSystem.models.DTO.CustDashboardStatsDTO;
+import com.gkev.InvoicingSystem.models.DTO.CustomerDetailResDTO;
 import com.gkev.InvoicingSystem.models.DTO.CustomerInvoiceResDTO;
 import com.gkev.InvoicingSystem.models.repo.CustomerRepo;
 import com.gkev.InvoicingSystem.models.repo.UsersRepo;
@@ -38,5 +39,12 @@ public class CustomerService {
                 .doOnSuccess(response -> logger.info("Dashboard Stats records found "));
 
     }
+
+    public Mono<CustomerDetailResDTO> getCustomerByUserNo(Long userNo) {
+    logger.info("querying customer detail for userNo {}", userNo);
+    return customerRepo.findByUserNo(userNo)
+            .switchIfEmpty(Mono.error(() -> new ResourceNotFound("NOT_FOUND", "Customer " + userNo + " could not be found")))
+            .doOnSuccess(response -> logger.info("customer detail found for userNo {}", userNo));
+}
 
 }
