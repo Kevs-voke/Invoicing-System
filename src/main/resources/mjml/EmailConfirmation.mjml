@@ -17,7 +17,7 @@
     <mj-section background-color="#ffffff" padding="30px" border-radius ="8px">
       <mj-column>
         <mj-text>
-        Dear <span th:text="${invoiceNo}"></span>
+        Dear <span th:text="${customerName}"></span>
         </mj-text>
 
         <mj-text font-size="20px" font-weight="bold">
