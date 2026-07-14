@@ -1,17 +1,22 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" >
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <link rel="stylesheet" href="css/bootstrap.min.css"/>
     <meta charset="UTF-8">
     <style>
         body {
             font-family: Helvetica, Arial, sans-serif;
             color: #1a1a2e;
             padding: 40px;
+            margin: 0;
         }
         .subtitle {
             font-size: 0.8rem;
             color: #6c757d;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #dee2e6;
+            margin: 12px 0 20px 0;
         }
         .metric-label {
             font-size: 0.7rem;
@@ -24,41 +29,78 @@
             font-weight: 700;
             color: #1a1a2e;
         }
-        .card-revenue   { background-color: #f7f7fb; border-color: #e0e0e8; }
-        .card-overall   { background-color: #f7f7fb; border-color: #e0e0e8; }
-        .card-current   { background-color: #f0f7f0; border-color: #d7ead7; }
-        .card-overdue   { background-color: #fbf0f0; border-color: #f0d7d7; }
-        .table thead th {
-            background-color: #1a1a2e;
-            color: #ffffff;
-            font-size: 0.8rem;
+        .card {
+            border: 1px solid #e0e0e8;
+            border-radius: 6px;
+            padding: 16px;
+            box-sizing: border-box;
         }
-        .table td, .table th {
-            font-size: 0.85rem;
-            vertical-align: middle;
+        .card-revenue,
+        .card-overall { background-color: #f7f7fb; border-color: #e0e0e8; }
+        .card-current { background-color: #f0f7f0; border-color: #d7ead7; }
+        .card-overdue { background-color: #fbf0f0; border-color: #f0d7d7; }
+        .metrics-row {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+            border-spacing: 8px 0;
+            margin-top: 8px;
+        }
+        .metrics-row .card {
+            display: table-cell;
+            width: 33.33%;
         }
         .section-title {
             font-size: 1rem;
             font-weight: 600;
-            margin-top: 2rem;
-            margin-bottom: 0.75rem;
+            margin-top: 32px;
+            margin-bottom: 12px;
         }
-        </style>
+        table.report-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table.report-table thead th {
+            background-color: #1a1a2e;
+            color: #ffffff;
+            font-size: 0.8rem;
+            padding: 8px 10px;
+            text-align: left;
+        }
+        table.report-table td, table.report-table th {
+            font-size: 0.85rem;
+            padding: 8px 10px;
+            border: 1px solid #dee2e6;
+            vertical-align: middle;
+        }
+        table.report-table tbody tr:nth-child(odd) {
+            background-color: #f7f7fb;
+        }
+        .text-center { text-align: center; }
+        .text-end { text-align: right; }
+        .footer-note {
+            color: #6c757d;
+            margin-top: 32px;
+            padding-top: 10px;
+            border-top: 1px solid #dee2e6;
+            font-size: 0.7rem;
+        }
+    </style>
 </head>
 <body>
-<div class="container-fluid" style="max-width: 800px;">
+<div style="max-width: 800px; margin: 0 auto;">
 
     <!-- Header -->
-    <h1 class="h4 mb-0">Imara Bill Invoice Summary Report</h1>
+    <h1 class="h4" style="margin: 0 0 4px 0;">Imara Bill Invoice Summary Report</h1>
     <div class="subtitle mb-3">
         Period: <span th:text="${reportPeriod}">June 2026</span>
         &nbsp;|&nbsp;
         Generated: <span th:text="${#temporals.format(generatedOn, 'MMMM dd, yyyy')}">July 09, 2026</span>
     </div>
-    <hr class="mt-0" />
+    <hr />
 
     <!-- Total Revenue -->
-    <div class="card card-revenue p-3">
+    <div class="card card-revenue">
         <div class="metric-label">Total Revenue</div>
         <div class="metric-value"
              th:text="${'KES ' + #numbers.formatDecimal(totalRevenue, 1, 'COMMA', 2, 'POINT')}">
@@ -68,51 +110,45 @@
 
     <!-- Outstanding Invoices -->
     <div class="section-title">Outstanding Invoices</div>
-    <div class="row g-2">
-        <div class="col-4">
-            <div class="card card-overall p-3 h-100">
-                <div class="metric-label">Overall Outstanding</div>
-                <div class="metric-value"
-                     th:text="${'KES ' + #numbers.formatDecimal(outstandingTotal, 1, 'COMMA', 2, 'POINT')}">
-                    KES 42,150.00
-                </div>
-                <div class="metric-label mt-2" th:text="${outstandingCount + ' invoices total'}">
-                    17 invoices total
-                </div>
+    <div class="metrics-row">
+        <div class="card card-overall">
+            <div class="metric-label">Overall Outstanding</div>
+            <div class="metric-value"
+                 th:text="${'KES ' + #numbers.formatDecimal(outstandingTotal, 1, 'COMMA', 2, 'POINT')}">
+                KES 42,150.00
+            </div>
+            <div class="metric-label mt-2" th:text="${outstandingCount + ' invoices total'}">
+                17 invoices total
             </div>
         </div>
-        <div class="col-4">
-            <div class="card card-current p-3 h-100">
-                <div class="metric-label">Current (not yet due)</div>
-                <div class="metric-value"
-                     th:text="${'KES ' + #numbers.formatDecimal(currentTotal, 1, 'COMMA', 2, 'POINT')}">
-                    KES 26,400.00
-                </div>
-                <div class="metric-label mt-2" th:text="${currentCount + ' invoices'}">
-                    11 invoices
-                </div>
+        <div class="card card-current">
+            <div class="metric-label">Current (not yet due)</div>
+            <div class="metric-value"
+                 th:text="${'KES ' + #numbers.formatDecimal(currentTotal, 1, 'COMMA', 2, 'POINT')}">
+                KES 26,400.00
+            </div>
+            <div class="metric-label mt-2" th:text="${currentCount + ' invoices'}">
+                11 invoices
             </div>
         </div>
-        <div class="col-4">
-            <div class="card card-overdue p-3 h-100">
-                <div class="metric-label">Overdue (past due date)</div>
-                <div class="metric-value"
-                     th:text="${'KES ' + #numbers.formatDecimal(overdueTotal, 1, 'COMMA', 2, 'POINT')}">
-                    KES 15,750.00
-                </div>
-                <div class="metric-label mt-2" th:text="${overdueCount + ' invoices'}">
-                    6 invoices
-                </div>
+        <div class="card card-overdue">
+            <div class="metric-label">Overdue (past due date)</div>
+            <div class="metric-value"
+                 th:text="${'KES ' + #numbers.formatDecimal(overdueTotal, 1, 'COMMA', 2, 'POINT')}">
+                KES 15,750.00
+            </div>
+            <div class="metric-label mt-2" th:text="${overdueCount + ' invoices'}">
+                6 invoices
             </div>
         </div>
     </div>
 
     <!-- Top 5 Customers -->
     <div class="section-title">Top 5 Customers by Value</div>
-    <table class="table table-bordered table-striped mb-0">
+    <table class="report-table">
         <thead>
         <tr>
-            <th>Cust. #</th>
+            <th>Cust No</th>
             <th>Customer</th>
             <th class="text-center">Invoices</th>
             <th class="text-end">Total Value</th>
@@ -125,13 +161,12 @@
             <td class="text-center" th:text="${customer.invoiceCount}"></td>
             <td class="text-end"
                 th:text="${'KES ' + #numbers.formatDecimal(customer.totalValue, 1, 'COMMA', 2, 'POINT')}">
-
             </td>
         </tr>
         </tbody>
     </table>
 
-    <div class="text-muted mt-4 pt-2 border-top" style="font-size: 0.7rem;">
+    <div class="footer-note">
         Generated automatically — figures reflect data as of report generation time.
     </div>
 
