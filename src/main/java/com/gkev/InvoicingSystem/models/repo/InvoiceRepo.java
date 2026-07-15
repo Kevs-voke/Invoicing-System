@@ -133,7 +133,7 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
             
                                      FROM (
                                          SELECT
-                                             COALESCE(SUM(inv.amount_paid), 0) AS total_revenue,
+                                             COALESCE(SUM(p.amount), 0) AS total_revenue,
             
                                              COALESCE(SUM(inv.total) FILTER (WHERE LOWER(inv.status) IN ('overdue', 'pending')), 0)
                                                  AS outstanding_total,
@@ -157,6 +157,7 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
                                          JOIN invoice inv ON inv.id = p.invoice_id
                                          WHERE p.payment_at >= date_trunc('month', CURRENT_DATE) - INTERVAL '1 month'
                                            AND p.payment_at <  date_trunc('month', CURRENT_DATE)
+                                            AND p.status = 'confirmed'
                                      ) agg
                                      CROSS JOIN (
                                          SELECT json_agg(
@@ -174,10 +175,10 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
                                                  COALESCE(SUM(p.amount), 0) AS total_value,
                                                  COALESCE(COUNT(DISTINCT inv.id), 0) AS invoice_count
                                              FROM users usr
-                                             LEFT JOIN invoice inv
+                                             INNER JOIN invoice inv
                                                  ON usr.id = inv.cust_id
                                                  AND LOWER(inv.status) IN ('overdue', 'pending', 'paid')
-                                             LEFT JOIN payments p
+                                             INNER JOIN payments p
                                                  ON p.invoice_id = inv.id
                                                  AND p.payment_at >= date_trunc('month', CURRENT_DATE) - INTERVAL '1 month'
                                                  AND p.payment_at <  date_trunc('month', CURRENT_DATE)
