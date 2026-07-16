@@ -20,4 +20,18 @@ import java.time.Duration;public final class CookieHeaderBuilderUtils {
         headers.add(HttpHeaders.SET_COOKIE, cookie.toString());
         return headers;
     }
+
+    public static HttpHeaders clearCookieHeaders() {
+        ResponseCookie cookie = ResponseCookie.from("auth_token", "")
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(Duration.ZERO)
+                .sameSite("Lax")
+                .build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.SET_COOKIE, cookie.toString());
+        return headers;
+    }
 }

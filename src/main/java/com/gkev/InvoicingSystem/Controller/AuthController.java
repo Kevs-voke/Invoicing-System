@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 import static com.gkev.InvoicingSystem.Utils.CookieHeaderBuilderUtils.buildCookieHeaders;
+import static com.gkev.InvoicingSystem.Utils.CookieHeaderBuilderUtils.clearCookieHeaders;
 
 
 @RestController
@@ -42,6 +43,15 @@ public class AuthController {
                                 .body(new LoginResApiDTO(loginResponse.firstName(),
                                         loginResponse.roles()))
                 );
+    }
+
+    @PostMapping("/logout")
+    public Mono<ResponseEntity<Void>> logout() {
+        return Mono.just(
+                ResponseEntity.ok()
+                        .headers(clearCookieHeaders())
+                        .build()
+        );
     }
 }
 
