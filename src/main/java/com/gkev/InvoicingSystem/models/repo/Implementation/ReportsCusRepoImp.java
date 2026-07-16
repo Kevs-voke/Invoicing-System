@@ -132,16 +132,15 @@ public Mono<ReportsSummaryDTO> getSummary(ReportsFilterDTO filter) {
     LocalDate toExclusive = filter.to().plusDays(1);
 
     String sql = """
-        SELECT gs.bucket_date::date AS bucket_date, COALESCE(SUM(p.amount), 0) AS amount
+        SELECT gs.bucket_date::date AS bucket_date, COALESCE(SUM(inv.total), 0) AS amount
         FROM generate_series(
             date_trunc('%s', :from::timestamp),
             date_trunc('%s', (:toExclusive::date - interval '1 day')),
             :step::interval
         ) AS gs(bucket_date)
-        LEFT JOIN payments p
-          ON date_trunc('%s', p.payment_at) = gs.bucket_date
-          AND p.status = 'confirmed'
-          AND p.payment_at >= :from AND p.payment_at < :toExclusive
+        LEFT JOIN invoice inv
+          ON date_trunc('%s', inv.created_at) = gs.bucket_date
+          AND inv.created_at >= :from AND inv.created_at < :toExclusive
         GROUP BY gs.bucket_date
         ORDER BY gs.bucket_date
         """.formatted(truncUnit, truncUnit, truncUnit);
