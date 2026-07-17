@@ -1,9 +1,11 @@
 package com.gkev.InvoicingSystem.Service;
 
 import com.gkev.InvoicingSystem.Exceptions.UserException;
+import com.gkev.InvoicingSystem.Utils.TempPasswordUtils;
 import com.gkev.InvoicingSystem.models.DTO.*;
 import com.gkev.InvoicingSystem.models.Mapper.CusRegMapper;
 import com.gkev.InvoicingSystem.models.Mapper.MeMapper;
+import com.gkev.InvoicingSystem.models.Mapper.NewAccountEmailMapper;
 import com.gkev.InvoicingSystem.models.entity.RolesEntity;
 import com.gkev.InvoicingSystem.models.entity.UserWithRolesEntity;
 import com.gkev.InvoicingSystem.models.entity.UsersEntity;
@@ -16,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
+import org.thymeleaf.spring6.SpringTemplateEngine;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
@@ -38,6 +41,9 @@ public class UserService {
     private final CusRegMapper cusRegMapper;
     private final PasswordEncoder passwordEncoder;
     private final MyUserDetailsService myUserDetailsService;
+    private final SpringTemplateEngine emailTemplateEngine;
+    private final EmailServiceSender emailServiceSender;
+    private final NewAccountEmailMapper newAccountEmailMapper;
 
     public Mono<LoginResponseDTO> CustSelfReg(CusRegDTO cusRegDTO) {
         logger.info("Registering new CUSTOMER: {} has started", cusRegDTO.email());
@@ -109,7 +115,7 @@ public class UserService {
         return usersRepo.existsByEmail(email)
                 .flatMap(emailExists -> {
                     if (emailExists) {
-                        return Mono.error(() -> new UserException("User Already Exists", "USER_EXISTS"));
+                        return Mono.error(() -> new UserException("USER_EXISTS", "User Already Exists"));
                     }
                     logger.info("Email is valid to be registered with: {}", email);
                     return Mono.empty();
@@ -121,7 +127,7 @@ public class UserService {
         return Flux.fromIterable(roles)
                 .flatMap(roleName ->
                         rolesRepo.findByRoleName(roleName)
-                                .switchIfEmpty(Mono.error(() -> new UserException("You have entered incorrect details", "INCORRECT_DETAILS")))
+                                .switchIfEmpty(Mono.error(() -> new UserException("INCORRECT_DETAILS", "You have entered incorrect details")))
                                 .map(RolesEntity::getId)
                                 .map(roleId -> {
                                     UserWithRolesEntity entity = new UserWithRolesEntity();
@@ -139,11 +145,11 @@ public class UserService {
     public Mono<LoginResponseDTO> loginUser(LoginReqDTO loginReqDTO) {
         logger.info("Login attempt for  customer: {} has started ", loginReqDTO.email());
         return usersRepo.findByEmail(loginReqDTO.email())
-                .switchIfEmpty(Mono.error(() -> new UserException("Invalid email or password", "INVALID_CREDENTIALS")))
+                .switchIfEmpty(Mono.error(() -> new UserException("INVALID_CREDENTIALS", "Invalid email or password")))
                 .flatMap(user -> {
                     boolean passwordMatches = passwordEncoder.matches(loginReqDTO.password(), user.getPassword());
                     if (!passwordMatches) {
-                        return Mono.error(() -> new UserException("Invalid email or password", "INVALID_CREDENTIALS"));
+                        return Mono.error(() -> new UserException("INVALID_CREDENTIALS", "Invalid email or password"));
                     }
                     return myUserDetailsService.findRolesByemail(user.getEmail())
                             .map(roles ->
@@ -166,6 +172,67 @@ public class UserService {
                             .doOnError(response -> logger.info("User: {} failed to login", loginReqDTO.email()));
 
                 });
+    }
+
+    public Mono<AdminCreateUserResDTO> createUserByAdmin(AdminCreateUserDTO dto) {
+        logger.info("Manager creating new {} account: {}", dto.role(), dto.email());
+        String tempPassword = TempPasswordUtils.generate();
+        CusRegDTO cusRegDTO = new CusRegDTO(
+                dto.firstName(),
+                dto.lastName(),
+                dto.email(),
+                dto.phoneNumber(),
+                tempPassword
+        );
+        List<String> roles = new ArrayList<>();
+        roles.add(dto.role());
+
+        return registerUserhelper(cusRegDTO, roles)
+                .flatMap(savedUser ->
+                        sendNewAccountEmail(savedUser.getT1(), tempPassword, dto.role())
+                                .thenReturn(new AdminCreateUserResDTO(
+                                        savedUser.getT1().getFirstName(),
+                                        savedUser.getT1().getLastName(),
+                                        savedUser.getT1().getEmail(),
+                                        dto.role()
+                                ))
+                )
+                .doOnSuccess(response -> logger.info("Account created and credentials emailed to: {}", dto.email()));
+    }
+
+    private Mono<Void> sendNewAccountEmail(UsersEntity user, String tempPassword, String role) {
+        var context = newAccountEmailMapper.setData(user.getFirstName(), user.getEmail(), tempPassword, role);
+        String html = emailTemplateEngine.process("NewAccountCredentials", context);
+        EmailMessage message = new EmailMessage(
+                user.getEmail(),
+                "Your ImaraBill account has been created",
+                html,
+                null,
+                null
+        );
+        return emailServiceSender.sendEmail(message);
+    }
+
+    public Mono<List<AdminUserListItemDTO>> listUsers() {
+        logger.info("Listing all users with roles");
+        return usersRepo.findAll()
+                .flatMap(user ->
+                        myUserDetailsService.findRolesByemail(user.getEmail())
+                                .map(roles ->
+                                        new AdminUserListItemDTO(
+                                                user.getId(),
+                                                user.getUserNo(),
+                                                user.getFirstName(),
+                                                user.getLastName(),
+                                                user.getEmail(),
+                                                user.getPhoneNumber(),
+                                                roles.stream().map(RolesEntity::getRoleName).toList(),
+                                                user.getDisabled(),
+                                                user.getCreatedAt()
+                                        )
+                                )
+                )
+                .collectList();
     }
 
     public Mono<MeDTO> getMe(UUID userId) {
