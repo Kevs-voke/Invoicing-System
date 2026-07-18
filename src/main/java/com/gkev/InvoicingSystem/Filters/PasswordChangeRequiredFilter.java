@@ -17,9 +17,8 @@ import reactor.core.publisher.Mono;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-
 //Blocks any authenticated request from a user whose password must be changed
- 
+
 public class PasswordChangeRequiredFilter implements WebFilter {
 
     private static final List<String> ALLOWED_PREFIXES = List.of(
@@ -43,14 +42,13 @@ public class PasswordChangeRequiredFilter implements WebFilter {
                 .map(Authentication::getPrincipal)
                 .filter(UserPrincipal.class::isInstance)
                 .cast(UserPrincipal.class)
-                .map(UserPrincipal::getMustChangePassword)
-                .defaultIfEmpty(false)
-                .flatMap(mustChangePassword -> {
-                    if (Boolean.TRUE.equals(mustChangePassword)) {
+                .flatMap(principal -> {
+                    if (Boolean.TRUE.equals(principal.getMustChangePassword())) {
                         return rejectWithPasswordChangeRequired(exchange);
                     }
                     return chain.filter(exchange);
-                });
+                })
+                .switchIfEmpty(chain.filter(exchange));
     }
 
     private boolean isAllowed(String path) {

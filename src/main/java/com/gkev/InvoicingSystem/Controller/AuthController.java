@@ -11,7 +11,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
@@ -54,7 +53,6 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
-    @PreAuthorize("isAuthenticated()")
     public Mono<ResponseEntity<Void>> changePassword(@Valid @RequestBody ChangePasswordDTO changePasswordDTO,
                                                        Authentication authentication) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
