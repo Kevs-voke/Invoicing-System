@@ -22,7 +22,7 @@ public class AdminController {
     private final UserService userService;
 
     @PostMapping
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('MANAGER') or (hasRole('STAFF') and #adminCreateUserDTO.role() == 'CUSTOMER')")
     public Mono<ResponseEntity<AdminCreateUserResDTO>> createUser(@Valid @RequestBody AdminCreateUserDTO adminCreateUserDTO) {
         return userService.createUserByAdmin(adminCreateUserDTO)
                 .map(created -> ResponseEntity.status(HttpStatus.CREATED).body(created));

@@ -2,15 +2,20 @@ package com.gkev.InvoicingSystem.Controller;
 
 
 import com.gkev.InvoicingSystem.Service.UserService;
+import com.gkev.InvoicingSystem.models.DTO.ChangePasswordDTO;
 import com.gkev.InvoicingSystem.models.DTO.CusRegDTO;
 import com.gkev.InvoicingSystem.models.DTO.LoginReqDTO;
 import com.gkev.InvoicingSystem.models.DTO.LoginResApiDTO;
+import com.gkev.InvoicingSystem.models.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+
+import java.util.UUID;
 
 import static com.gkev.InvoicingSystem.Utils.CookieHeaderBuilderUtils.buildCookieHeaders;
 import static com.gkev.InvoicingSystem.Utils.CookieHeaderBuilderUtils.clearCookieHeaders;
@@ -29,7 +34,8 @@ public class AuthController {
                         .headers(buildCookieHeaders(authResponse.jwtToken()))
                         .body(new LoginResApiDTO(
                                 authResponse.firstName(),
-                                authResponse.roles()
+                                authResponse.roles(),
+                                authResponse.mustChangePassword()
                         ))
                 );
     }
@@ -41,8 +47,18 @@ public class AuthController {
                         ResponseEntity.ok()
                                 .headers(buildCookieHeaders(loginResponse.jwtToken()))
                                 .body(new LoginResApiDTO(loginResponse.firstName(),
-                                        loginResponse.roles()))
+                                        loginResponse.roles(),
+                                        loginResponse.mustChangePassword()))
                 );
+    }
+
+    @PostMapping("/change-password")
+    public Mono<ResponseEntity<Void>> changePassword(@Valid @RequestBody ChangePasswordDTO changePasswordDTO,
+                                                       Authentication authentication) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        UUID userId = userPrincipal.getUserId();
+        return userService.changePassword(userId, changePasswordDTO)
+                .then(Mono.just(ResponseEntity.ok().<Void>build()));
     }
 
     @PostMapping("/logout")
@@ -54,4 +70,5 @@ public class AuthController {
         );
     }
 }
+
 

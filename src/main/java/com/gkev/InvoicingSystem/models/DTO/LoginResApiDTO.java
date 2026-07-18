@@ -4,5 +4,6 @@ import java.util.List;
 
 public record LoginResApiDTO(
         String firstName,
-        List<String> roles
+        List<String> roles,
+        Boolean mustChangePassword
 ) { }

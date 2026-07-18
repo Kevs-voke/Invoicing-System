@@ -15,7 +15,7 @@ public final class TempPasswordUtils {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     /**
-     * Generates a random 12-character temporary password containing at least
+     * Generate a random 12-character temporary password containing at least
      * one uppercase letter, one lowercase letter, one digit, and one symbol.
      */
     public static String generate() {
