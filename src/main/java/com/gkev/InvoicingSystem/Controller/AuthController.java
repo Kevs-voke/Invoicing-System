@@ -48,10 +48,11 @@ public class AuthController {
     @PostMapping("/logout")
     public Mono<ResponseEntity<Void>> logout() {
         return Mono.just(
-                ResponseEntity.ok()
-                        .headers(clearCookieHeaders())
-                        .build()
-        );
+                ResponseEntity.noContent()
+                .headers(clearCookieHeaders())
+                .build());
+
+
     }
 }
 

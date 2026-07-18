@@ -3,6 +3,7 @@ package com.gkev.InvoicingSystem.Service;
 import com.gkev.InvoicingSystem.models.DTO.EmailMessage;
 import com.gkev.InvoicingSystem.models.Mapper.OwnerReportMapper;
 import com.gkev.InvoicingSystem.models.Mapper.SummaryInvoiceMapper;
+import com.gkev.InvoicingSystem.models.repo.UsersRepo;
 import lombok.RequiredArgsConstructor;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
@@ -11,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.spring6.SpringTemplateEngine;
+import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
@@ -22,8 +24,9 @@ public class MonthlySummaryJob implements Job {
     private final SpringTemplateEngine emailTemplateEngine;
     private final PdfGeneratorService pdfGeneratorService;
     private final SummaryInvoiceMapper invoiceMapper;
-    private final SummaryReportEmailService summaryReport;
+    private final EmailService summaryReport;
     private final OwnerReportMapper ownerReport;
+    private  final UsersRepo usersRepo;
     private final Logger logger = LoggerFactory.getLogger(MonthlySummaryJob.class);
 
     @Override
@@ -34,7 +37,7 @@ public class MonthlySummaryJob implements Job {
                             invoiceMapper.setData(report)
                                     .flatMap(invoiceContext -> {
                                         String html = emailTemplateEngine.process("summaryInvoiceReport", invoiceContext);
-                                        return pdfGeneratorService.invoiceSummaryHtmlToPdf(html)
+                                        return pdfGeneratorService.htmlToPdf(html)
                                                 .flatMap(pdf -> ownerReport.setData(report)
                                                         .map(summaryEmail -> {
                                                             String reportEmailHtml = emailTemplateEngine.process("EmailMonthlySummary", summaryEmail);
@@ -46,7 +49,7 @@ public class MonthlySummaryJob implements Job {
                                                                     report.reportPeriod() + "_Monthly_report.pdf"
                                                             );
                                                         })
-                                                        .flatMap(summaryReport::sendEmailToOwners)
+                                                        .flatMap(this::sendEmailToOwners)
                                                 );
                                     })
                     )
@@ -56,5 +59,16 @@ public class MonthlySummaryJob implements Job {
         } catch (Exception e) {
             throw new JobExecutionException("Failed to send monthly summary report", e);
         }
+    }
+    private Mono<Void> sendEmailToOwners(EmailMessage template) {
+        return usersRepo.getBusinessOwners()
+                .flatMap(ownerEmail -> summaryReport.sendEmail(
+                        new EmailMessage(
+                                ownerEmail,
+                                template.subject(),
+                                template.htmlBody(),
+                                template.attachment(),
+                                template.attachmentFilename())))
+                .then();
     }
 }

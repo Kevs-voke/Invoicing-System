@@ -7,7 +7,6 @@ import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.UUID;
 
 public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID> {
@@ -61,8 +60,8 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
             
                   COALESCE(json_agg(
                 json_build_object(
-                    'itemName', items.item_name,
-                    'unitPrice', items.unit_price,
+                    'item_name', items.item_name,
+                    'unit_price', items.unit_price,
                     'quantity', items.quantity,
                     'tax', items.tax,
                     'tax_total', COALESCE(items.tax_subtotal, 0),
@@ -189,4 +188,47 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
                                      ) tc;
             """)
     Mono<InvoiceSummaryReportDb> getInvoiceMonthlySummaryReport();
+
+    @Query("""
+            SELECT status\s
+            FROM invoice
+            WHERE invoice_no = :invoiceNo;
+            """)
+    Mono<String> getInvoiceStatus(long invoiceNo);
+
+    @Query("""
+            UPDATE status
+            FROM invoice
+            WHERE invoice_no = :invoiceNo
+            """)
+    Mono<Void> updateInvoiceStatus(long invoiceNo);
+
+    @Query("""
+            SELECT
+            COALESCE(usr.first_name, '') || ' ' || COALESCE(usr.last_name, '') AS customer_name,
+            usr.email,
+            inv.invoice_no,
+            COALESCE(inv.total_tax,0),
+            COALESCE(inv.total,0),
+            inv.due_date,
+            COALESCE(
+            json_agg(
+            json_build_object(
+            "item_name", items.item_name,
+            "unit_price", COALESCE(items.unit_price,0.0),
+            "quantity", COALESCE(items.quantity,0),
+            "tax", COALESCE(items.tax,0.0),
+            "tax_subtotal", COALESCE(items.tax_subtotal,0),
+            "sub_total", COALESCE(items.sub_total,0)
+            )
+            ), '[]'::json) AS invoice_items
+            
+            FROM invoice inv
+            INNER JOIN users usr ON inv.cust_id = usr.id
+            LEFT JOIN invoice_items items ON items.invoice_id = inv.id
+            WHERE inv.invoice_no = 0
+            GROUP BY usr.first_name, usr.last_name, inv.invoice_no, inv.total_tax,inv.due_date,inv.total,usr.email;
+            """)
+    Mono<InvoiceConfirmationDTO> getConfirmInvoice(long invoiceNo);
+
 }

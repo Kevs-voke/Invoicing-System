@@ -17,11 +17,10 @@ import reactor.core.scheduler.Schedulers;
 
 @Service
 @RequiredArgsConstructor
-public class SummaryReportEmailService implements EmailServiceSender {
+public class EmailService implements EmailServiceSender {
 
     private final JavaMailSender javaMailSender;
-    private final UsersRepo usersRepo;
-    private final Logger logger = LoggerFactory.getLogger(SummaryReportEmailService.class);
+    private final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
     @Override
     public Mono<Void> sendEmail(EmailMessage message) {
@@ -65,16 +64,6 @@ public class SummaryReportEmailService implements EmailServiceSender {
                 .then();
     }
 
-    @Override
-    public Mono<Void> sendEmailToOwners(EmailMessage template) {
-        return usersRepo.getBusinessOwners()
-                .flatMap(ownerEmail -> sendEmail(
-                        new EmailMessage(
-                                ownerEmail,
-                                template.subject(),
-                                template.htmlBody(),
-                                template.attachment(),
-                                template.attachmentFilename())))
-                .then();
-    }
+
+
 }

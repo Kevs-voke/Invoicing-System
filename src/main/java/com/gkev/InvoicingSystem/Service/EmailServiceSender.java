@@ -7,5 +7,5 @@ public interface EmailServiceSender {
 
     Mono<Void> sendEmail(EmailMessage message);
 
-    Mono<Void> sendEmailToOwners(EmailMessage template);}
+}
 
