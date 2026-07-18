@@ -62,7 +62,6 @@ public class SecurityConfig {
                 )
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .pathMatchers("/auth/change-password").authenticated()
                         .pathMatchers("/auth/**", "/reports/**", "/css/**").permitAll()
                         .pathMatchers("/customer/**").hasRole("MANAGER")
                         .anyExchange().authenticated()
