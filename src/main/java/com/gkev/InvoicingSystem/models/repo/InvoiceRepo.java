@@ -40,14 +40,15 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
             """)
     Mono<Long> getInvoiceNoByInvoiceId(UUID id);
 
-    @Query("""
-            SELECT EXISTS (
-                SELECT 1
-                 FROM invoice
-                  WHERE cust_id =  :userId)
-                   AS invoice_exists;
-            """)
-    Mono<Boolean> invoiceExistsByUserId(UUID userId);
+   @Query("""
+        SELECT EXISTS (
+            SELECT 1
+             FROM invoice
+              WHERE id = :invoiceId
+               AND cust_id = :userId)
+                AS invoice_exists;
+        """)
+    Mono<Boolean> invoiceExistsForCustomer(UUID invoiceId, UUID userId);
 
     @Query("""
                         SELECT
