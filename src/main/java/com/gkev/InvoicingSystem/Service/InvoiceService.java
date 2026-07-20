@@ -286,8 +286,8 @@ private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
                 });
 
        }
-       public Mono<Void> notifyCustomerInvoiceCreated(long invoiceNo,String currentStatus) {
-        return updateStatus(invoiceNo, currentStatus)
+       public Mono<Void> notifyCustomerInvoiceCreated(long invoiceNo) {
+        return updateStatus(invoiceNo, "sent")
                 .flatMap(x -> getInvoiceConfirmationDetails(invoiceNo))
                 .flatMap(invoice -> invoiceConfirmationNotification.send(Channel.EMAIL, invoice))
                 .doOnSuccess(res -> logger.info("customer notified Successfully"));

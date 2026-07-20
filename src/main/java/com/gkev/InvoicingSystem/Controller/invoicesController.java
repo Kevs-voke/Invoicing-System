@@ -46,12 +46,11 @@ public class invoicesController {
         return invoiceService.getDetailedInvoice(invoiceNo,customerNo)
                 .map(ResponseEntity::ok);
     }
-    @PatchMapping("{invoiceNo}/Status")
-    public Mono<ResponseEntity<Void>> updateInvoiceStatus(
-            @PathVariable long invoiceNo,
-            @RequestBody InvoiceStatusUpdate invoiceStatusUpdate
+    @PatchMapping("/{invoiceNo}/send-invoice-confirmation")
+    public Mono<ResponseEntity<Void>> notifyCustomerInvoiceCreated(
+            @PathVariable long invoiceNo
     ){
-        return invoiceService.notifyCustomerInvoiceCreated(invoiceNo,invoiceStatusUpdate.status())
+        return invoiceService.notifyCustomerInvoiceCreated(invoiceNo)
                 .map(rx -> ResponseEntity.noContent().build());
     }
 }
