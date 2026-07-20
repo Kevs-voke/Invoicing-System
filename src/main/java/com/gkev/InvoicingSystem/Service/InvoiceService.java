@@ -4,6 +4,7 @@
     import com.gkev.InvoicingSystem.Exceptions.InvoiceCreationException;
     import com.gkev.InvoicingSystem.Exceptions.ResourceNotFound;
     import com.gkev.InvoicingSystem.models.DTO.*;
+    import com.gkev.InvoicingSystem.models.Enums.Channel;
     import com.gkev.InvoicingSystem.models.Mapper.InvoiceMapper;
     import com.gkev.InvoicingSystem.models.entity.InvoiceItemsEntity;
     import com.gkev.InvoicingSystem.models.entity.InvoicesEntity;
@@ -45,6 +46,7 @@
     private final ObjectMapper objectMapper = JsonMapper.builder()
             .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
             .build();
+    private final InvoiceConfirmationNotification invoiceConfirmationNotification;
 
 
 
@@ -284,8 +286,9 @@ private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
                 });
 
        }
-//       public Mono<Void> notifyCustomerInvoiceCreated(long invoiceNo,String currentStatus) {
-//        return updateStatus(invoiceNo, currentStatus);
-//                .
-//       }
+       public Mono<Void> notifyCustomerInvoiceCreated(long invoiceNo,String currentStatus) {
+        return updateStatus(invoiceNo, currentStatus)
+                .flatMap(x -> getInvoiceConfirmationDetails(invoiceNo))
+                .flatMap(invoice -> invoiceConfirmationNotification.send(Channel.EMAIL, invoice));
+       }
     }

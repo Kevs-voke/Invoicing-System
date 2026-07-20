@@ -1,9 +1,10 @@
 package com.gkev.InvoicingSystem.models.Mapper;
 
 import com.gkev.InvoicingSystem.models.DTO.InvoiceConfirmationResDTO;
+import org.springframework.stereotype.Component;
 import org.thymeleaf.context.Context;
 import reactor.core.publisher.Mono;
-
+@Component
 public class ConfirmationInvoiceMapper {
     public Mono<Context> setData(InvoiceConfirmationResDTO invoice){
         Context context = new Context();
