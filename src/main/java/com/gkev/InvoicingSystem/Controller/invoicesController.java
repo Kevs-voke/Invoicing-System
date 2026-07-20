@@ -46,4 +46,12 @@ public class invoicesController {
         return invoiceService.getDetailedInvoice(invoiceNo,customerNo)
                 .map(ResponseEntity::ok);
     }
+    @PatchMapping("{invoiceNo}/Status")
+    public Mono<ResponseEntity<Void>> updateInvoiceStatus(
+            @PathVariable long invoiceNo,
+            @RequestBody InvoiceStatusUpdate invoiceStatusUpdate
+    ){
+        return invoiceService.notifyCustomerInvoiceCreated(invoiceNo,invoiceStatusUpdate.status())
+                .map(rx -> ResponseEntity.noContent().build());
+    }
 }

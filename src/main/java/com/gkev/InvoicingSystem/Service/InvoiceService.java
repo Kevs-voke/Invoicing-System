@@ -1,8 +1,10 @@
     package com.gkev.InvoicingSystem.Service;
 
+    import com.gkev.InvoicingSystem.Exceptions.InvalidTransitionException;
     import com.gkev.InvoicingSystem.Exceptions.InvoiceCreationException;
     import com.gkev.InvoicingSystem.Exceptions.ResourceNotFound;
     import com.gkev.InvoicingSystem.models.DTO.*;
+    import com.gkev.InvoicingSystem.models.Enums.Channel;
     import com.gkev.InvoicingSystem.models.Mapper.InvoiceMapper;
     import com.gkev.InvoicingSystem.models.entity.InvoiceItemsEntity;
     import com.gkev.InvoicingSystem.models.entity.InvoicesEntity;
@@ -18,6 +20,8 @@
     import java.math.BigDecimal;
     import java.sql.Timestamp;
     import java.util.List;
+    import java.util.Map;
+    import java.util.Set;
     import java.util.UUID;
 
     import org.slf4j.Logger;
@@ -39,10 +43,11 @@
     private final UsersRepo usersRepo;
     private final Logger logger = LoggerFactory.getLogger(InvoiceService.class);
     private final InvoicesCusRepo invoicesCusRepo;
-    private final ObjectMapper objectMapper;
-    private final ObjectMapper snakeCaseMapper = JsonMapper.builder()
+    private final ObjectMapper objectMapper = JsonMapper.builder()
             .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
             .build();
+    private final InvoiceConfirmationNotification invoiceConfirmationNotification;
+
 
 
     public Mono<InvoiceRespDTO> createInvoice(InvoiceDTO invoiceDTO) {
@@ -203,7 +208,7 @@
     }
 private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
         try {
-            return snakeCaseMapper.readValue(json, new TypeReference<>() {});
+            return objectMapper.readValue(json, new TypeReference<>() {});
         }catch (Exception e) {
             throw new RuntimeException("Failed to parse Top Customer Records JSON", e);
         }
@@ -238,4 +243,53 @@ private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
                 ));
     }
 
-}
+    public Mono<Void> updateStatus(long invoiceNo, String currentStatus) {
+        logger.info("Updating Invoice Status for Invoice No: {}", invoiceNo);
+        return invoiceRepo.getInvoiceStatus(invoiceNo)
+                .flatMap(prevStatus -> {
+                    if( !isValidStatusTransition(prevStatus, currentStatus)){
+                        throw new InvalidTransitionException("ILLEGAL_INVOICE_STATUS_TRANSITION","This invoice cannot be updated to the requested status.");
+                    }
+                  return   invoiceRepo.updateInvoiceStatus(invoiceNo)
+                          .doOnSuccess(r -> logger.info("Successfully updated Invoice Status for Invoice No: {}", invoiceNo));
+                });
+    }
+
+        private static  Map<String, Set<String>> invoiceStatusTransitions() {
+           return Map.of(
+                    "draft", Set.of("sent", "cancelled"),
+                    "sent", Set.of("rejected", "cancelled", "pending"),
+                    "pending", Set.of("cancelled", "paid", "overdue"),
+                    "paid", Set.of(),
+                    "overdue", Set.of("paid"),
+                    "cancelled", Set.of(),
+                    "rejected", Set.of("sent","cancelled")
+            );
+        }
+        public boolean isValidStatusTransition(String from, String to) {
+            Set<String> allowed = invoiceStatusTransitions().get(from);
+            return allowed != null && allowed.contains(to);
+        }
+       private Mono<InvoiceConfirmationResDTO> getInvoiceConfirmationDetails(long invoiceNo) {
+        return invoiceRepo.getConfirmInvoice(invoiceNo)
+                .flatMap(invoice -> {
+                    List<InvoiceItemsResDTO> items = parseInvoiceItems(invoice.invoiceItems());
+                    return  Mono.just( new InvoiceConfirmationResDTO(
+                            invoice.customerName(),
+                            invoice.email(),
+                            invoice.invoiceNo(),
+                            invoice.totalTax(),
+                            invoice.total(),
+                            invoice.dueDate(),
+                            items
+                    ));
+                });
+
+       }
+       public Mono<Void> notifyCustomerInvoiceCreated(long invoiceNo,String currentStatus) {
+        return updateStatus(invoiceNo, currentStatus)
+                .flatMap(x -> getInvoiceConfirmationDetails(invoiceNo))
+                .flatMap(invoice -> invoiceConfirmationNotification.send(Channel.EMAIL, invoice))
+                .doOnSuccess(res -> logger.info("customer notified Successfully"));
+       }
+    }

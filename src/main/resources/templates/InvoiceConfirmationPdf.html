@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice</title>
+    <style>
+        body {
+            font-family: 'Helvetica', Arial, sans-serif;
+            color: #212529;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+        .invoice-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 24px;
+            margin-bottom: 24px;
+        }
+        .invoice-meta {
+            border-collapse: collapse;
+        }
+        .invoice-meta td {
+            padding: 4px 12px;
+            text-align: right;
+        }
+        .invoice-meta td:first-child {
+            font-weight: 600;
+            color: #6c757d;
+            text-align: left;
+        }
+        table.items {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+        table.items th {
+            background-color: #f1f3f5;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            text-align: left;
+            padding: 12px 10px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        table.items td, table.items th {
+            padding: 12px 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        table.items td.text-end { text-align: right; }
+        table.items td.text-center { text-align: center; }
+
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .totals-table td {
+            padding: 8px 12px;
+        }
+        .totals-table td.text-end { text-align: right; }
+        .totals-table tr.grand-total td {
+            font-weight: 700;
+            font-size: 17px;
+            border-top: 2px solid #212529;
+        }
+
+        .due-date-banner {
+            background-color: #fff3cd;
+            border: 1px solid #ffe69c;
+            padding: 12px 18px;
+            border-radius: 4px;
+            display: inline-block;
+            font-weight: 500;
+        }
+
+        .text-muted { color: #6c757d; }
+        .mb-4 { margin-bottom: 24px; }
+        .mb-0 { margin-bottom: 0; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Header -->
+    <div class="invoice-header">
+        <div>
+            <h2 class="mb-0">INVOICE DETAILS</h2>
+
+        </div>
+        <div>
+            <table class="invoice-meta">
+                <tr>
+                    <td>Invoice No</td>
+                    <td th:text="${invoiceNo}">INV-0001</td>
+                </tr>
+                <tr>
+                    <td>Due Date</td>
+                    <td th:text="${#temporals.format(dueDate, 'dd MMM yyyy')}">30 Jul 2026</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+
+
+    <!-- Items table -->
+    <table class="items">
+        <thead>
+        <tr>
+            <th>Item Name</th>
+            <th class="text-end">Unit Price</th>
+            <th class="text-center">Quantity</th>
+            <th class="text-end">Tax</th>
+            <th class="text-end">Tax Subtotal</th>
+            <th class="text-end"> Subtotal</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="item : ${items}">
+            <td th:text="${item.itemName}">Item</td>
+            <td class="text-end" th:text="${#numbers.formatDecimal(item.unitPrice, 1, 2)}">0.00</td>
+            <td class="text-center" th:text="${item.quantity}">1</td>
+            <td class="text-end" th:text="${#numbers.formatDecimal(item.tax, 1, 2)}">0.00</td>
+            <td class="text-end" th:text="${#numbers.formatDecimal(item.taxSubtotal, 1, 2)}">0.00</td>
+            <td class="text-end" th:text="${#numbers.formatDecimal(item.subtotal, 1, 2)}">0.00</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Totals -->
+    <div style="display: flex; justify-content: flex-end;">
+        <div style="width: 45%;">
+            <table class="totals-table">
+
+                <tr>
+                    <td>Total Tax</td>
+                    <td class="text-end" th:text="${#numbers.formatDecimal(totalTax, 1, 2)}">0.00</td>
+                </tr>
+                <tr class="grand-total">
+                    <td>Total</td>
+                    <td class="text-end" th:text="${#numbers.formatDecimal(total, 1, 2)}">0.00</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

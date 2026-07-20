@@ -13,7 +13,7 @@ import java.net.URL;
 @Service
 public class PdfGeneratorService {
 
-    public Mono<byte[]> invoiceSummaryHtmlToPdf(String html) {
+    public Mono<byte[]> htmlToPdf(String html) {
         return Mono.fromCallable(() -> {
                     ByteArrayOutputStream out = new ByteArrayOutputStream();
 
