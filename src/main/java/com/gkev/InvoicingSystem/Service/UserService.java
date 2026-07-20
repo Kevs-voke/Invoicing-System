@@ -185,27 +185,28 @@ public class UserService {
         return emailServiceSender.sendEmail(message);
     }
 
-    public Mono<List<AdminUserListItemDTO>> listUsers() {
-        logger.info("Listing all users with roles");
-        return usersRepo.findAll()
-                .flatMap(user ->
-                        myUserDetailsService.findRolesByemail(user.getEmail())
-                                .map(roles ->
-                                        new AdminUserListItemDTO(
-                                                user.getId(),
-                                                user.getUserNo(),
-                                                user.getFirstName(),
-                                                user.getLastName(),
-                                                user.getEmail(),
-                                                user.getPhoneNumber(),
-                                                roles.stream().map(RolesEntity::getRoleName).toList(),
-                                                user.getDisabled(),
-                                                user.getCreatedAt()
-                                        )
-                                )
-                )
-                .collectList();
-    }
+  public Mono<List<AdminUserListItemDTO>> listUsers() {
+    logger.info("Listing all users with roles");
+    return usersRepo.findAll()
+            .flatMap(user ->
+                    myUserDetailsService.findRolesByemail(user.getEmail())
+                            .map(roles ->
+                                    new AdminUserListItemDTO(
+                                            user.getId(),
+                                            user.getUserNo(),
+                                            user.getFirstName(),
+                                            user.getLastName(),
+                                            user.getEmail(),
+                                            user.getPhoneNumber(),
+                                            roles.stream().map(RolesEntity::getRoleName).toList(),
+                                            user.getDisabled(),
+                                            user.getCreatedAt()
+                                    )
+                            )
+            )
+            .filter(dto -> dto.roles().stream().anyMatch(r -> r.equals("MANAGER") || r.equals("STAFF")))
+            .collectList();
+}
 
     public Mono<Void> changePassword(UUID userId, ChangePasswordDTO dto) {
         logger.info("Password change attempt for user: {}", userId);

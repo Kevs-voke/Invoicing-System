@@ -27,16 +27,14 @@ public class CustomerRepoImp implements CustomerRepo {
                 
                 SELECT
                     usr.user_no,
+                    usr.first_name,
+                    usr.last_name,
                     usr.email,
-                    usr.phone_number,
-                    inv.invoice_no,
-                    inv.status,
-                    (inv.total - inv.amount_paid) AS total,
-                    inv.due_date
+                    usr.phone_number
+                    
                 FROM users usr
                 INNER JOIN user_with_roles uw ON uw.user_id = usr.id
                 INNER JOIN roles r ON r.id = uw.role_id
-                LEFT JOIN invoice inv ON inv.cust_id = usr.id
                 WHERE r.role_name = 'CUSTOMER'
                 AND 1=1
                 
@@ -54,35 +52,9 @@ if (filter.hasCustomerNo()) {
     sql.append(" AND CAST(usr.user_no AS TEXT) LIKE :customerNo ");
     params.put("customerNo", "%" + filter.customerNo() + "%");
 }
-        if (filter.hasStatus()){
-            sql.append("AND inv.status = :status");
-            params.put("status", filter.status());
-        }
-        if (filter.hasDueDateFrom()) {
-            sql.append("AND inv.due_date >= :dueDateFrom ");
-            params.put("dueDateFrom", filter.dueDateFrom());
-        }
-        if (filter.hasDueDateTo()) {
-            sql.append("AND inv.due_date <= :dueDateTo ");
-            params.put("dueDateTo", filter.dueDateTo());
-        }
-        if (filter.hasInvoiceNo()){
-            sql.append("AND inv.invoice_no = :invoiceNo");
-            params.put("invoiceNo", filter.invoiceNo());
-        }
-
-        sql.append("""
-                 ORDER BY
-                CASE
-                    WHEN inv.status = 'overdue' THEN 1
-                    WHEN inv.status = 'pending' THEN 2
-                    WHEN inv.status = 'paid'    THEN 3
-                    ELSE 4
-                END,
-                inv.due_date %s
-                """.formatted(filter.dueDateSortDirection().name())
-        );
-        sql.append("LIMIT :limit OFFSET :offset");
+       
+        sql.append(" ORDER BY usr.user_no ");
+        sql.append(" LIMIT :limit OFFSET :offset");
         params.put("limit", size);
         params.put("offset", (long)page * size);
 
@@ -94,12 +66,11 @@ if (filter.hasCustomerNo()) {
         return spec.map(
                 (row, meta) -> CustomerInvoiceResDTO.builder()
                         .userNo(row.get("user_no", String.class))
+                        .firstName(row.get("first_name", String.class))
+                        .lastName(row.get("last_name", String.class))
                         .email(row.get("email", String.class))
                         .phoneNumber(row.get("phone_number", String.class))
-                        .invoiceNo(row.get("invoice_no", Long.class))
-                        .status(row.get("status", String.class))
-                        .total(row.get("total", BigDecimal.class))
-                        .dueDate(row.get("due_date", LocalDate.class))
+                        
                         .build())
                 .all();
     }

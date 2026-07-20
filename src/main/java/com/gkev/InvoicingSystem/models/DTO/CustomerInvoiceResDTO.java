@@ -9,6 +9,8 @@ import java.time.LocalDate;
 @Builder
 public record CustomerInvoiceResDTO(
         String userNo,
+        String firstName,
+        String lastName,
         String email,
         String phoneNumber,
         Long invoiceNo,
