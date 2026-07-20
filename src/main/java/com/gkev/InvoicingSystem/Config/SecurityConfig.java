@@ -1,6 +1,7 @@
 package com.gkev.InvoicingSystem.Config;
 
 import com.gkev.InvoicingSystem.Filters.JwtAuthFilter;
+import com.gkev.InvoicingSystem.Filters.PasswordChangeRequiredFilter;
 import com.gkev.InvoicingSystem.Service.JwtService;
 import com.gkev.InvoicingSystem.Service.MyUserDetailsService;
 import org.springframework.context.annotation.Bean;
@@ -36,6 +37,7 @@ public class SecurityConfig {
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         JwtAuthFilter jwtAuthFilter = new JwtAuthFilter(jwtService, myUserDetailsService);
+        PasswordChangeRequiredFilter passwordChangeRequiredFilter = new PasswordChangeRequiredFilter();
 
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
@@ -60,11 +62,13 @@ public class SecurityConfig {
                 )
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .pathMatchers("/auth/change-password").authenticated()
                         .pathMatchers("/auth/**", "/reports/**", "/css/**").permitAll()
                         .pathMatchers("/customer/**").hasRole("MANAGER")
                         .anyExchange().authenticated()
                 )
                 .addFilterAt(jwtAuthFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+                .addFilterAfter(passwordChangeRequiredFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .build();
     }
 

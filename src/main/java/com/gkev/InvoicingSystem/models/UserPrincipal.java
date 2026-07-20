@@ -23,6 +23,10 @@ public class UserPrincipal implements UserDetails {
         return user.getId();
     }
 
+    public Boolean getMustChangePassword() {
+        return user.getMustChangePassword();
+    }
+
     @Override
     @NullMarked
     public Collection<? extends GrantedAuthority> getAuthorities() {

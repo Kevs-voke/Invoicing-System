@@ -15,7 +15,8 @@ public class MeMapper {
               user.getPhoneNumber(),
               user.getEmail(),
               user.getUserNo(),
-              roles
+              roles,
+              user.getMustChangePassword()
       );
   }
 }

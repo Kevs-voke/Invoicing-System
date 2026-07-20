@@ -49,58 +49,29 @@ public class UserService {
         logger.info("Registering new CUSTOMER: {} has started", cusRegDTO.email());
         List<String> roles = new ArrayList<>();
         roles.add("CUSTOMER");
-        return registerUserhelper(cusRegDTO, roles)
+        return registerUserhelper(cusRegDTO, roles, false)
                 .flatMap(userWithRoles -> {
                     String jwtToken = jwt.generateToken(userWithRoles.getT1(), userWithRoles.getT2());
                     return Mono.just(new LoginResponseDTO(
                             userWithRoles.getT1().getFirstName(),
                             userWithRoles.getT2(),
-                            jwtToken
+                            jwtToken,
+                            userWithRoles.getT1().getMustChangePassword()
                     )).doOnSuccess(response ->
                             logger.info("User: {} successfully registered", userWithRoles.getT1().getEmail())
                     );
                 });
     }
 
-    public Mono<String> registerUser(UserRegDTO userRegDTO) {
-        logger.info("Registering new user: {} has started", userRegDTO.cusRegDTO().email());
-        return registerUserhelper(userRegDTO.cusRegDTO(), userRegDTO.roles())
-                .flatMap(response -> {
-
-                            String email = response.getT1().getEmail();
-                            return Mono.just(email)
-                                    .doOnSuccess(userEmail -> logger.info("User {} has been registered", userEmail));
-
-                        }
-                );
 
 
-    }
-
-    public Mono<String> createCustomer(CusRegDTO cusRegDTO) {
-        logger.info("Registering new customer: {} has started", cusRegDTO.email());
-        List<String> roles = new ArrayList<>();
-        roles.add("CUSTOMER");
-        return registerUserhelper(cusRegDTO, roles)
-                .flatMap(response -> {
-
-                            String email = response.getT1().getEmail();
-                            return Mono.just(email)
-                                    .doOnSuccess(userEmail -> logger.info("Customer {} has been registered", userEmail));
-
-                        }
-                );
-
-
-    }
-
-
-    private Mono<Tuple2<UsersEntity, List<String>>> registerUserhelper(CusRegDTO cusRegDTO, List<String> roles) {
+    private Mono<Tuple2<UsersEntity, List<String>>> registerUserhelper(CusRegDTO cusRegDTO, List<String> roles, boolean mustChangePassword) {
         return transactionalOperator.transactional(
                 validateEmail(cusRegDTO.email())
                         .then(Mono.defer(() -> {
                             UsersEntity user = cusRegMapper.toUserEntity(cusRegDTO);
                             user.setPassword(passwordEncoder.encode(cusRegDTO.password()));
+                            user.setMustChangePassword(mustChangePassword);
                             return usersRepo.save(user);
                         }))
                         .flatMap(savedUser ->
@@ -163,7 +134,8 @@ public class UserService {
                                 return new LoginResponseDTO(
                                         user.getFirstName(),
                                         roleNames,
-                                        jwtToken
+                                        jwtToken,
+                                        user.getMustChangePassword()
 
                                 );
 
@@ -187,7 +159,7 @@ public class UserService {
         List<String> roles = new ArrayList<>();
         roles.add(dto.role());
 
-        return registerUserhelper(cusRegDTO, roles)
+        return registerUserhelper(cusRegDTO, roles, true)
                 .flatMap(savedUser ->
                         sendNewAccountEmail(savedUser.getT1(), tempPassword, dto.role())
                                 .thenReturn(new AdminCreateUserResDTO(
@@ -233,6 +205,23 @@ public class UserService {
                                 )
                 )
                 .collectList();
+    }
+
+    public Mono<Void> changePassword(UUID userId, ChangePasswordDTO dto) {
+        logger.info("Password change attempt for user: {}", userId);
+        return usersRepo.findById(userId)
+                .switchIfEmpty(Mono.error(() -> new UserException("USER_NOT_FOUND", "User not found")))
+                .flatMap(user -> {
+                    boolean passwordMatches = passwordEncoder.matches(dto.currentPassword(), user.getPassword());
+                    if (!passwordMatches) {
+                        return Mono.error(() -> new UserException("INVALID_CREDENTIALS", "Current password is incorrect"));
+                    }
+                    user.setPassword(passwordEncoder.encode(dto.newPassword()));
+                    user.setMustChangePassword(false);
+                    return usersRepo.save(user);
+                })
+                .doOnSuccess(saved -> logger.info("Password successfully changed for user: {}", userId))
+                .then();
     }
 
     public Mono<MeDTO> getMe(UUID userId) {

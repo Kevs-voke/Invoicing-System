@@ -26,6 +26,9 @@
       private String password;
       private Boolean disabled;
 
+      @Column("must_change_password")
+        private Boolean mustChangePassword;
+
       @Column("account_non_expired")
         private Boolean accountNonExpired;
 

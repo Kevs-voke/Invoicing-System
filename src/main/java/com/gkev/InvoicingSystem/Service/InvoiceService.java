@@ -167,7 +167,7 @@
                     UUID invoiceNumber = tuple.getT1();
                     UUID userNumber = tuple.getT2();
 
-                    return invoiceRepo.invoiceExistsByUserId(userNumber)
+                    return invoiceRepo.invoiceExistsForCustomer(invoiceNumber, userNumber)
                             .flatMap(
                                     isInvCust -> {
                                         if (!isInvCust) {

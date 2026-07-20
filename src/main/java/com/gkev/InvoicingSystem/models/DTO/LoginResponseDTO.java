@@ -5,6 +5,7 @@ import java.util.List;
 public record LoginResponseDTO(
         String firstName,
         List<String> roles,
-        String jwtToken
+        String jwtToken,
+        Boolean mustChangePassword
 ) {
 }

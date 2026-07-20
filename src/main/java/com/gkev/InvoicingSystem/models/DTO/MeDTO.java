@@ -7,6 +7,7 @@ public record MeDTO(
        String phoneNumber,
        String email,
        Long userNumber,
-       List<String> roles
+       List<String> roles,
+       Boolean mustChangePassword
 ) {
 }
