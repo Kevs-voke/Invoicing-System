@@ -7,7 +7,6 @@ import com.gkev.InvoicingSystem.models.DTO.CusRegDTO;
 import com.gkev.InvoicingSystem.models.DTO.LoginReqDTO;
 import com.gkev.InvoicingSystem.models.DTO.LoginResApiDTO;
 import com.gkev.InvoicingSystem.models.UserPrincipal;
-import com.gkev.InvoicingSystem.models.DTO.OneTimeLoginDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -60,15 +59,6 @@ public class AuthController {
         UUID userId = userPrincipal.getUserId();
         return userService.changePassword(userId, changePasswordDTO)
                 .then(Mono.just(ResponseEntity.ok().<Void>build()));
-    }
-
-    @PostMapping("/one-time-login")
-    public Mono<ResponseEntity<LoginResApiDTO>> oneTimeLogin(@Valid @RequestBody OneTimeLoginDTO dto) {
-        return userService.loginWithOneTimeToken(dto.token())
-                .map(loginResponse -> ResponseEntity.ok()
-                        .headers(buildCookieHeaders(loginResponse.jwtToken()))
-                        .body(new LoginResApiDTO(loginResponse.firstName(), loginResponse.roles(), loginResponse.mustChangePassword()))
-                );
     }
 
     @PostMapping("/logout")

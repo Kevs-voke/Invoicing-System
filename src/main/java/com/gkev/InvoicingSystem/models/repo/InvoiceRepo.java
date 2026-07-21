@@ -233,10 +233,26 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
             """)
     Mono<InvoiceConfirmationDTO> getConfirmInvoice(long invoiceNo);
     @Query("""
-            UPDATE invoice
-            SET status = 'overdue'
-            WHERE due_date = CURRENT_DATE;
+        UPDATE invoice
+        SET status = 'overdue'
+        WHERE due_date < CURRENT_DATE
+          AND LOWER(status) = 'pending';
+        """)
+Mono<Void> updateStatusPendingOverdue();
+
+    @Query("""
+            SELECT COALESCE(total, 0) - COALESCE(amount_paid, 0)
+            FROM invoice
+            WHERE id = :invoiceId
             """)
-    Mono<Void> updateStatusPendingOverdue();
+    Mono<BigDecimal> getOutstandingBalance(UUID invoiceId);
+
+    @Query("""
+            SELECT status
+            FROM invoice
+            WHERE id = :invoiceId
+            """)
+    Mono<String> getInvoiceStatusById(UUID invoiceId);
+}
 
 

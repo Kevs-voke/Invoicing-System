@@ -282,11 +282,15 @@ private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
         return invoiceRepo.getInvoiceStatus(invoiceNo)
                 .flatMap(prevStatus -> {
                     logger.info("{} is the previous status of the invoice", prevStatus);
-                    if( !isValidStatusTransition(prevStatus, currentStatus)){
+                    if (prevStatus.equalsIgnoreCase(currentStatus)) {
+                        logger.info("Invoice {} already has status '{}'; skipping status update", invoiceNo, currentStatus);
+                        return Mono.empty();
+                    }
+                    if (!isValidStatusTransition(prevStatus, currentStatus)) {
                         throw new InvalidTransitionException("ILLEGAL_INVOICE_STATUS_TRANSITION","This invoice cannot be updated to the requested status.");
                     }
-                  return   invoiceRepo.updateInvoiceStatus(invoiceNo, currentStatus)
-                          .doOnSuccess(r -> logger.info("Successfully updated Invoice Status for Invoice No: {}", invoiceNo));
+                    return invoiceRepo.updateInvoiceStatus(invoiceNo, currentStatus)
+                            .doOnSuccess(r -> logger.info("Successfully updated Invoice Status for Invoice No: {}", invoiceNo));
                 });
     }
 
@@ -324,10 +328,17 @@ private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
 
        }
        public Mono<Void> notifyCustomerInvoiceCreated(long invoiceNo) {
-        return updateStatus(invoiceNo, "sent")
-                .then(getInvoiceConfirmationDetails(invoiceNo))
-                .flatMap(invoice -> invoiceConfirmationNotification.send(Channel.EMAIL, invoice))
-                .doOnSuccess(res -> logger.info("customer notified Successfully"));
+        return invoiceRepo.getInvoiceStatus(invoiceNo)
+                .flatMap(prevStatus -> {
+                    if ("sent".equalsIgnoreCase(prevStatus)) {
+                        logger.info("Invoice {} is already sent; skipping duplicate confirmation", invoiceNo);
+                        return Mono.empty();
+                    }
+                    return updateStatus(invoiceNo, "sent")
+                            .then(getInvoiceConfirmationDetails(invoiceNo))
+                            .flatMap(invoice -> invoiceConfirmationNotification.send(Channel.EMAIL, invoice))
+                            .doOnSuccess(res -> logger.info("customer notified Successfully"));
+                });
        }
        public Mono<Void> updateStatusPendingOverdue(){
         logger.info("Updating invoices Status from pending to Overdue for invoices passed due date");
