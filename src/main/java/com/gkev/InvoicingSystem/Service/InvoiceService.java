@@ -288,8 +288,13 @@ private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
        }
        public Mono<Void> notifyCustomerInvoiceCreated(long invoiceNo) {
         return updateStatus(invoiceNo, "sent")
-                .flatMap(x -> getInvoiceConfirmationDetails(invoiceNo))
+                .then(getInvoiceConfirmationDetails(invoiceNo))
                 .flatMap(invoice -> invoiceConfirmationNotification.send(Channel.EMAIL, invoice))
                 .doOnSuccess(res -> logger.info("customer notified Successfully"));
+       }
+       public Mono<Void> updateStatusPendingOverdue(){
+        logger.info("Updating invoices Status from pending to Overdue for invoices passed due date");
+        return invoiceRepo.updateStatusPendingOverdue()
+                .doOnSuccess(v -> logger.info("Successfully updated invoice status from pending to overdue for invoices passed due date"));
        }
     }

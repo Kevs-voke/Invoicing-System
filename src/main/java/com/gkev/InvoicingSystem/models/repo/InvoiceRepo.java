@@ -227,9 +227,16 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
             FROM invoice inv
             INNER JOIN users usr ON inv.cust_id = usr.id
             LEFT JOIN invoice_items items ON items.invoice_id = inv.id
-            WHERE inv.invoice_no = 0
+            WHERE inv.invoice_no = :invoiceNo
             GROUP BY usr.first_name, usr.last_name, inv.invoice_no, inv.total_tax,inv.due_date,inv.total,usr.email;
             """)
     Mono<InvoiceConfirmationDTO> getConfirmInvoice(long invoiceNo);
+    @Query("""
+            UPDATE invoice
+            SET status = 'overdue'
+            WHERE due_date = CURRENT_DATE;
+            """)
+    Mono<Void> updateStatusPendingOverdue();
+
 
 }

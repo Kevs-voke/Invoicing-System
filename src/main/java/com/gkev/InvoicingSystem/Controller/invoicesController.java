@@ -47,7 +47,7 @@ public class invoicesController {
                 .map(ResponseEntity::ok);
     }
     @PatchMapping("/{invoiceNo}/send-invoice-confirmation")
-    public Mono<ResponseEntity<Void>> notifyCustomerInvoiceCreated(
+    public Mono<ResponseEntity<Void>> sendInvoiceConfirmation(
             @PathVariable long invoiceNo
     ){
         return invoiceService.notifyCustomerInvoiceCreated(invoiceNo)
