@@ -127,7 +127,7 @@
             <td class="text-center" th:text="${item.quantity}">1</td>
             <td class="text-end" th:text="${#numbers.formatDecimal(item.tax, 1, 2)}">0.00</td>
             <td class="text-end" th:text="${#numbers.formatDecimal(item.taxSubtotal, 1, 2)}">0.00</td>
-            <td class="text-end" th:text="${#numbers.formatDecimal(item.subtotal, 1, 2)}">0.00</td>
+            <td class="text-end" th:text="${#numbers.formatDecimal(item.subTotal, 1, 2)}">0.00</td>
         </tr>
         </tbody>
     </table>

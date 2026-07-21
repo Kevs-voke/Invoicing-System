@@ -6,6 +6,7 @@
     import com.gkev.InvoicingSystem.models.DTO.*;
     import com.gkev.InvoicingSystem.models.Enums.Channel;
     import com.gkev.InvoicingSystem.models.Mapper.InvoiceMapper;
+    import com.gkev.InvoicingSystem.models.UserPrincipal;
     import com.gkev.InvoicingSystem.models.entity.InvoiceItemsEntity;
     import com.gkev.InvoicingSystem.models.entity.InvoicesEntity;
     import com.gkev.InvoicingSystem.models.repo.InvoiceItemsRepo;
@@ -26,6 +27,7 @@
 
     import org.slf4j.Logger;
     import org.slf4j.LoggerFactory;
+    import org.springframework.security.core.context.ReactiveSecurityContextHolder;
     import reactor.core.scheduler.Schedulers;
     import reactor.util.function.Tuples;
     import tools.jackson.core.type.TypeReference;
@@ -77,10 +79,10 @@
                 .collectList()
                 .flatMap(items -> {
                     BigDecimal subTotal = items.stream()
-                            .map(InvoiceItemsResDTO::total)
+                            .map(InvoiceItemsResDTO::subTotal)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
                     BigDecimal totalTax = items.stream()
-                            .map(InvoiceItemsResDTO::tax_total)
+                            .map(InvoiceItemsResDTO::taxSubtotal)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                     logger.info("Invoice totals — subTotal={}, totalTax={}, itemCount={}",
@@ -115,9 +117,9 @@
                                             entity.setInvoiceId(invoice.getId());
                                             entity.setItemName(invoiceItem.itemName());
                                             entity.setUnitPrice(invoiceItem.unitPrice());
-                                            entity.setSubTotal(invoiceItem.total());
+                                            entity.setSubTotal(invoiceItem.subTotal());
                                             entity.setTax(invoiceItem.tax());
-                                            entity.setTaxSubtotal(invoiceItem.tax_total());
+                                            entity.setTaxSubtotal(invoiceItem.taxSubtotal());
                                             entity.setQuantity(invoiceItem.quantity());
                                             return entity;
                                         })
@@ -146,6 +148,37 @@
     return invoicesCusRepo.getInvoices(filter, page, size)
             .doOnComplete(() -> logger.info("Invoices query completed"));
     }
+
+    public Flux<InvoiceCustResDTO> getMyInvoices(InvoicesFilterDTO filter, int page, int size) {
+        return currentUserNo()
+                .flatMapMany(customerNo -> getInvoices(forCustomer(filter, customerNo), page, size));
+    }
+
+    public Mono<DetailedInvoiceResDTO> getMyDetailedInvoice(long invoiceNo) {
+        return currentUserNo()
+                .flatMap(customerNo -> getDetailedInvoice(invoiceNo, customerNo));
+    }
+
+    private Mono<Long> currentUserNo() {
+        return ReactiveSecurityContextHolder.getContext()
+                .map(ctx -> ((UserPrincipal) ctx.getAuthentication().getPrincipal()).getUserId())
+                .flatMap(usersRepo::getUserNoByUserId);
+    }
+
+    private InvoicesFilterDTO forCustomer(InvoicesFilterDTO filter, Long customerNo) {
+        return new InvoicesFilterDTO(
+                null,
+                null,
+                customerNo,
+                filter.invoiceNo(),
+                filter.status(),
+                filter.dueDateFrom(),
+                filter.dueDateTo(),
+                filter.sortBy(),
+                filter.sortDirection()
+        );
+    }
+
     public Mono<InvoiceDashboardStatsDTO> getInvoiceDashboardStats() {
         logger.info("Query for invoices dashboard stats has started");
         return invoiceRepo.getInvoiceDashboardStats()
@@ -245,12 +278,14 @@ private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
 
     public Mono<Void> updateStatus(long invoiceNo, String currentStatus) {
         logger.info("Updating Invoice Status for Invoice No: {}", invoiceNo);
+        logger.info("{} is the current status to be updated", currentStatus);
         return invoiceRepo.getInvoiceStatus(invoiceNo)
                 .flatMap(prevStatus -> {
+                    logger.info("{} is the previous status of the invoice", prevStatus);
                     if( !isValidStatusTransition(prevStatus, currentStatus)){
                         throw new InvalidTransitionException("ILLEGAL_INVOICE_STATUS_TRANSITION","This invoice cannot be updated to the requested status.");
                     }
-                  return   invoiceRepo.updateInvoiceStatus(invoiceNo)
+                  return   invoiceRepo.updateInvoiceStatus(invoiceNo, currentStatus)
                           .doOnSuccess(r -> logger.info("Successfully updated Invoice Status for Invoice No: {}", invoiceNo));
                 });
     }
@@ -267,12 +302,14 @@ private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
             );
         }
         public boolean isValidStatusTransition(String from, String to) {
-            Set<String> allowed = invoiceStatusTransitions().get(from);
-            return allowed != null && allowed.contains(to);
-        }
+        if (from == null || to == null) return false;
+        Set<String> allowed = invoiceStatusTransitions().get(from.toLowerCase());
+        return allowed != null && allowed.contains(to.toLowerCase());
+    }
        private Mono<InvoiceConfirmationResDTO> getInvoiceConfirmationDetails(long invoiceNo) {
         return invoiceRepo.getConfirmInvoice(invoiceNo)
                 .flatMap(invoice -> {
+                    logger.info("{ } is the invoice details for confirmation", invoice);
                     List<InvoiceItemsResDTO> items = parseInvoiceItems(invoice.invoiceItems());
                     return  Mono.just( new InvoiceConfirmationResDTO(
                             invoice.customerName(),
@@ -287,9 +324,18 @@ private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
 
        }
        public Mono<Void> notifyCustomerInvoiceCreated(long invoiceNo) {
-        return updateStatus(invoiceNo, "sent")
-                .flatMap(x -> getInvoiceConfirmationDetails(invoiceNo))
-                .flatMap(invoice -> invoiceConfirmationNotification.send(Channel.EMAIL, invoice))
-                .doOnSuccess(res -> logger.info("customer notified Successfully"));
+        return invoiceRepo.getInvoiceStatus(invoiceNo)
+                .switchIfEmpty(Mono.error(new ResourceNotFound("NOT_FOUND", "Invoice could not be found")))
+                .flatMap(prevStatus -> {
+                    if ("sent".equalsIgnoreCase(prevStatus)) {
+                        logger.info("Invoice {} has already been sent; skipping duplicate notification", invoiceNo);
+                        return Mono.empty();
+                    }
+
+                    return updateStatus(invoiceNo, "sent")
+                            .then(getInvoiceConfirmationDetails(invoiceNo))
+                            .flatMap(invoice -> invoiceConfirmationNotification.send(Channel.EMAIL, invoice))
+                            .doOnSuccess(res -> logger.info("customer notified Successfully"));
+                });
        }
     }

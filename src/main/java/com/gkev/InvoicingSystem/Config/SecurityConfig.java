@@ -63,8 +63,9 @@ public class SecurityConfig {
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .pathMatchers("/auth/change-password").authenticated()
-                        .pathMatchers("/auth/**", "/reports/**", "/css/**").permitAll()
-                        .pathMatchers("/customer/**").hasRole("MANAGER")
+                        .pathMatchers("/auth/**", "/css/**").permitAll()
+                        .pathMatchers("/reports/**").hasRole("MANAGER")
+                        .pathMatchers("/customer/**").hasAnyRole("MANAGER", "STAFF")
                         .anyExchange().authenticated()
                 )
                 .addFilterAt(jwtAuthFilter, SecurityWebFiltersOrder.AUTHENTICATION)

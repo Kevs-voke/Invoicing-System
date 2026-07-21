@@ -1,6 +1,7 @@
 package com.gkev.InvoicingSystem.models.DTO;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public record InvoiceConfirmationDTO(
         String customerName,
@@ -8,7 +9,7 @@ public record InvoiceConfirmationDTO(
         long invoiceNo,
         BigDecimal totalTax,
         BigDecimal total,
-        BigDecimal dueDate,
+        LocalDate dueDate,
         String invoiceItems
 ) {
 }

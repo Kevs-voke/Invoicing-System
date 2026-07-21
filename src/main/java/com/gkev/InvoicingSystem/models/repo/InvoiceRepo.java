@@ -4,6 +4,7 @@ import com.gkev.InvoicingSystem.models.DTO.*;
 import com.gkev.InvoicingSystem.models.entity.InvoicesEntity;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import org.springframework.data.repository.query.Param;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import java.math.BigDecimal;
@@ -198,38 +199,51 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
     Mono<String> getInvoiceStatus(long invoiceNo);
 
     @Query("""
-            UPDATE status
-            FROM invoice
-            WHERE invoice_no = :invoiceNo
+             UPDATE invoice 
+            SET status = :status 
+            WHERE invoice_no = :invoiceNo;
             """)
-    Mono<Void> updateInvoiceStatus(long invoiceNo);
+    Mono<Void> updateInvoiceStatus(long invoiceNo, String status);
 
     @Query("""
             SELECT
             COALESCE(usr.first_name, '') || ' ' || COALESCE(usr.last_name, '') AS customer_name,
             usr.email,
             inv.invoice_no,
-            COALESCE(inv.total_tax,0),
-            COALESCE(inv.total,0),
+            COALESCE(inv.total_tax,0) AS total_tax,
+            COALESCE(inv.total,0) AS total,
             inv.due_date,
             COALESCE(
             json_agg(
             json_build_object(
-            "item_name", items.item_name,
-            "unit_price", COALESCE(items.unit_price,0.0),
-            "quantity", COALESCE(items.quantity,0),
-            "tax", COALESCE(items.tax,0.0),
-            "tax_subtotal", COALESCE(items.tax_subtotal,0),
-            "sub_total", COALESCE(items.sub_total,0)
+            'item_name', items.item_name,
+            'unit_price', COALESCE(items.unit_price,0.0),
+            'quantity', COALESCE(items.quantity,0),
+            'tax', COALESCE(items.tax,0.0),
+            'tax_subtotal', COALESCE(items.tax_subtotal,0),
+            'sub_total', COALESCE(items.sub_total,0)
             )
             ), '[]'::json) AS invoice_items
             
             FROM invoice inv
             INNER JOIN users usr ON inv.cust_id = usr.id
             LEFT JOIN invoice_items items ON items.invoice_id = inv.id
-            WHERE inv.invoice_no = 0
+            WHERE inv.invoice_no = :invoiceNo
             GROUP BY usr.first_name, usr.last_name, inv.invoice_no, inv.total_tax,inv.due_date,inv.total,usr.email;
             """)
-    Mono<InvoiceConfirmationDTO> getConfirmInvoice(long invoiceNo);
+Mono<InvoiceConfirmationDTO> getConfirmInvoice(@Param("invoiceNo") long invoiceNo);
+@Query("""
+        SELECT COALESCE(total, 0) - COALESCE(amount_paid, 0)
+        FROM invoice
+        WHERE id = :invoiceId
+        """)
+Mono<BigDecimal> getOutstandingBalance(UUID invoiceId);
 
+@Query("""
+        SELECT status
+        FROM invoice
+        WHERE id = :invoiceId
+        """)
+Mono<String> getInvoiceStatusById(UUID invoiceId);
 }
+

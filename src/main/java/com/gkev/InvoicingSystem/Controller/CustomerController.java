@@ -7,6 +7,7 @@ import com.gkev.InvoicingSystem.models.DTO.CustomerInvoiceResDTO;
 import com.gkev.InvoicingSystem.models.DTO.CustomerDetailResDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -15,6 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/customer")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('MANAGER', 'STAFF')")
 public class CustomerController {
 
     private final CustomerService customerService;

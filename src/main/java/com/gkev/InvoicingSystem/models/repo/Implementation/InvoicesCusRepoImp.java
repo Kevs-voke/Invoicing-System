@@ -67,7 +67,7 @@ public class InvoicesCusRepoImp implements InvoicesCusRepo {
             params.put("dueDateTo", filter.dueDateTo());
         }
         if (filter.hasStatus()) {
-            sql.append(" AND inv.status = :status");
+            sql.append(" AND LOWER(inv.status) = LOWER(:status)");
             params.put("status", filter.status());
         }
         String sortColumn = resolveSortColumn(filter.sortBy());

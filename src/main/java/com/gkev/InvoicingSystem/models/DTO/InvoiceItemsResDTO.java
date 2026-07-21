@@ -7,9 +7,7 @@ public record InvoiceItemsResDTO(
        BigDecimal unitPrice,
        BigDecimal quantity,
        BigDecimal tax,
-       BigDecimal tax_total,
-       BigDecimal total
+       BigDecimal taxSubtotal,
+       BigDecimal subTotal
 ) {
 }
-
-

@@ -38,4 +38,9 @@ public class GlobalExceptionHandler {
            return buildResponse(e.getErrorCode(), e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
+        @ExceptionHandler(InvalidTransitionException.class)
+        public Mono<ResponseEntity<ErrorResponseDTO>> handleInvalidTransitionException(InvalidTransitionException e) {
+            return buildResponse(e.getErrorCode(), e.getMessage(), HttpStatus.CONFLICT);
+        }
+
     }
