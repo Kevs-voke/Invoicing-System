@@ -254,5 +254,3 @@ Mono<Void> updateStatusPendingOverdue();
             """)
     Mono<String> getInvoiceStatusById(UUID invoiceId);
 }
-
-

@@ -7,6 +7,10 @@ public record EmailMessage(
         byte[] attachment,
         String attachmentFilename
 ) {
+    public EmailMessage(String to, String subject, String htmlBody) {
+        this(to, subject, htmlBody, null, null);
+    }
+
     public boolean hasAttachment() {
         return attachment != null && attachment.length > 0;
     }

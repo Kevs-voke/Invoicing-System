@@ -45,6 +45,7 @@
     private final UsersRepo usersRepo;
     private final Logger logger = LoggerFactory.getLogger(InvoiceService.class);
     private final InvoicesCusRepo invoicesCusRepo;
+    private final OverdueInvoiceNotification overdueInvoiceNotification;
     private final ObjectMapper objectMapper = JsonMapper.builder()
             .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
             .build();
@@ -246,7 +247,7 @@ private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
             throw new RuntimeException("Failed to parse Top Customer Records JSON", e);
         }
 }
-    public Flux<OverdueInvoiceDTO> getOverdueInvoiceCust() {
+    private Flux<OverdueInvoiceDTO> getOverdueInvoiceCust() {
         return invoiceRepo.getOverdueInvoiceCust();
     }
 
@@ -345,4 +346,17 @@ private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
         return invoiceRepo.updateStatusPendingOverdue()
                 .doOnSuccess(v -> logger.info("Successfully updated invoice status from pending to overdue for invoices passed due date"));
        }
+        public Mono<Void> notifyCustomerOverdueInvoice() {
+            logger.info("Notifying customers with overdue invoices has started");
+            return getOverdueInvoiceCust()
+                    .flatMap(invoice ->
+                            overdueInvoiceNotification.send(Channel.EMAIL, invoice)
+                                    .doOnError(ex -> logger.warn(
+                                            "Failed to send overdue notification for invoice {}: {}",
+                                            invoice.invoiceNo(), ex.getMessage()))
+                                    .onErrorResume(ex -> Mono.empty())
+                    )
+                    .then()
+                    .doOnSuccess(v -> logger.info("Finished notifying customers with overdue invoices"));
+        }
     }

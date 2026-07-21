@@ -11,15 +11,12 @@ import java.time.Duration;
 @Component
 @RequiredArgsConstructor
 public class DailySchedulerOverdueJob implements Job {
-    private final MockSmsSender mockSmsSender;
     private final InvoiceService invoiceService;
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         try {
-            invoiceService.getOverdueInvoiceCust()
-                    .flatMap(mockSmsSender::send)
-                    .then()
+            invoiceService.notifyCustomerOverdueInvoice()
                     .block(Duration.ofMillis(4000));
         } catch (Exception e) {
             throw new JobExecutionException("Failed to send overdue invoice reminders", e);
