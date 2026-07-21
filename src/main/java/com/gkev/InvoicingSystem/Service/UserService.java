@@ -146,6 +146,28 @@ public class UserService {
                 });
     }
 
+        public Mono<LoginResponseDTO> loginWithOneTimeToken(String token) {
+                logger.info("One-time login attempt using token");
+                if (!jwt.isOneTimeToken(token)) {
+                        return Mono.error(() -> new UserException("INVALID_TOKEN", "Invalid or expired token"));
+                }
+                String email = jwt.extractEmail(token);
+                return usersRepo.findByEmail(email)
+                                .switchIfEmpty(Mono.error(() -> new UserException("INVALID_TOKEN", "Invalid token or user not found")))
+                                .flatMap(user -> myUserDetailsService.findRolesByemail(user.getEmail())
+                                                .map(roles -> roles.stream().map(RolesEntity::getRoleName).toList())
+                                                .map(roleNames -> {
+                                                        String jwtToken = jwt.generateToken(user, roleNames);
+                                                        return new LoginResponseDTO(
+                                                                        user.getFirstName(),
+                                                                        roleNames,
+                                                                        jwtToken,
+                                                                        user.getMustChangePassword()
+                                                        );
+                                                })
+                                );
+        }
+
     public Mono<AdminCreateUserResDTO> createUserByAdmin(AdminCreateUserDTO dto) {
         logger.info("Manager creating new {} account: {}", dto.role(), dto.email());
         String tempPassword = TempPasswordUtils.generate();
@@ -160,20 +182,22 @@ public class UserService {
         roles.add(dto.role());
 
         return registerUserhelper(cusRegDTO, roles, true)
-                .flatMap(savedUser ->
-                        sendNewAccountEmail(savedUser.getT1(), tempPassword, dto.role())
+                .flatMap(savedUser -> {
+                        // generate a short-lived one-time login token (15 minutes)
+                        String oneTimeToken = jwt.generateOneTimeToken(savedUser.getT1(), 1000L * 60 * 15);
+                        return sendNewAccountEmail(savedUser.getT1(), tempPassword, dto.role(), oneTimeToken)
                                 .thenReturn(new AdminCreateUserResDTO(
                                         savedUser.getT1().getFirstName(),
                                         savedUser.getT1().getLastName(),
                                         savedUser.getT1().getEmail(),
                                         dto.role()
-                                ))
-                )
+                                ));
+                })
                 .doOnSuccess(response -> logger.info("Account created and credentials emailed to: {}", dto.email()));
     }
 
-    private Mono<Void> sendNewAccountEmail(UsersEntity user, String tempPassword, String role) {
-        var context = newAccountEmailMapper.setData(user.getFirstName(), user.getEmail(), tempPassword, role);
+        private Mono<Void> sendNewAccountEmail(UsersEntity user, String tempPassword, String role, String loginToken) {
+                var context = newAccountEmailMapper.setData(user.getFirstName(), user.getEmail(), tempPassword, role, loginToken);
         String html = emailTemplateEngine.process("NewAccountCredentials", context);
         EmailMessage message = new EmailMessage(
                 user.getEmail(),
@@ -213,10 +237,13 @@ public class UserService {
         return usersRepo.findById(userId)
                 .switchIfEmpty(Mono.error(() -> new UserException("USER_NOT_FOUND", "User not found")))
                 .flatMap(user -> {
-                    boolean passwordMatches = passwordEncoder.matches(dto.currentPassword(), user.getPassword());
-                    if (!passwordMatches) {
-                        return Mono.error(() -> new UserException("INVALID_CREDENTIALS", "Current password is incorrect"));
-                    }
+                                        // If the user has a flagged temporary password, allow changing without supplying the current password
+                                        if (!Boolean.TRUE.equals(user.getMustChangePassword())) {
+                                                boolean passwordMatches = passwordEncoder.matches(dto.currentPassword(), user.getPassword());
+                                                if (!passwordMatches) {
+                                                        return Mono.error(() -> new UserException("INVALID_CREDENTIALS", "Current password is incorrect"));
+                                                }
+                                        }
                     user.setPassword(passwordEncoder.encode(dto.newPassword()));
                     user.setMustChangePassword(false);
                     return usersRepo.save(user);

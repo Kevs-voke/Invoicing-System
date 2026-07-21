@@ -75,7 +75,7 @@ public class invoicesController {
 
     @PatchMapping("/{invoiceNo}/send-invoice-confirmation")
     @PreAuthorize("hasAnyRole('MANAGER', 'STAFF')")
-    public Mono<ResponseEntity<Void>> notifyCustomerInvoiceCreated(
+    public Mono<ResponseEntity<Void>> sendInvoiceConfirmation(
             @PathVariable long invoiceNo
     ){
             log.info("PATCH /send-invoice-confirmation called for invoice {}", invoiceNo);

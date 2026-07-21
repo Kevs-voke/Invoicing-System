@@ -73,6 +73,32 @@ public class JwtService {
         return email.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
+    /**
+     * Generate a short-lived one-time login token. This token contains a claim
+     * `oneTime=true` and expires after the provided milliseconds.
+     */
+    public String generateOneTimeToken(UsersEntity user, long ttlMillis) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", user.getId());
+        claims.put("oneTime", Boolean.TRUE);
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(user.getEmail())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + ttlMillis))
+                .signWith(getKey())
+                .compact();
+    }
+
+    public boolean isOneTimeToken(String token) {
+        try {
+            Boolean oneTime = extractClaim(token, claims -> claims.get("oneTime", Boolean.class));
+            return Boolean.TRUE.equals(oneTime) && !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }

@@ -324,18 +324,14 @@ private List<TopCustomerRecords> parseTopCustomerRecords(String json) {
 
        }
        public Mono<Void> notifyCustomerInvoiceCreated(long invoiceNo) {
-        return invoiceRepo.getInvoiceStatus(invoiceNo)
-                .switchIfEmpty(Mono.error(new ResourceNotFound("NOT_FOUND", "Invoice could not be found")))
-                .flatMap(prevStatus -> {
-                    if ("sent".equalsIgnoreCase(prevStatus)) {
-                        logger.info("Invoice {} has already been sent; skipping duplicate notification", invoiceNo);
-                        return Mono.empty();
-                    }
-
-                    return updateStatus(invoiceNo, "sent")
-                            .then(getInvoiceConfirmationDetails(invoiceNo))
-                            .flatMap(invoice -> invoiceConfirmationNotification.send(Channel.EMAIL, invoice))
-                            .doOnSuccess(res -> logger.info("customer notified Successfully"));
-                });
+        return updateStatus(invoiceNo, "sent")
+                .then(getInvoiceConfirmationDetails(invoiceNo))
+                .flatMap(invoice -> invoiceConfirmationNotification.send(Channel.EMAIL, invoice))
+                .doOnSuccess(res -> logger.info("customer notified Successfully"));
+       }
+       public Mono<Void> updateStatusPendingOverdue(){
+        logger.info("Updating invoices Status from pending to Overdue for invoices passed due date");
+        return invoiceRepo.updateStatusPendingOverdue()
+                .doOnSuccess(v -> logger.info("Successfully updated invoice status from pending to overdue for invoices passed due date"));
        }
     }
