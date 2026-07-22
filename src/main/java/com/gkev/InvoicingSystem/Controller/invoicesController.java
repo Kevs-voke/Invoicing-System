@@ -73,6 +73,13 @@ public class invoicesController {
                 .map(ResponseEntity::ok);
     }
 
+    @GetMapping("/mine/dashboard")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public Mono<ResponseEntity<CustomerDashboardStatsDTO>> getMyDashboardStats() {
+        return invoiceService.getMyDashboardStats()
+                .map(ResponseEntity::ok);
+    }
+
     @PatchMapping("/{invoiceNo}/send-invoice-confirmation")
     @PreAuthorize("hasAnyRole('MANAGER', 'STAFF')")
     public Mono<ResponseEntity<Void>> sendInvoiceConfirmation(

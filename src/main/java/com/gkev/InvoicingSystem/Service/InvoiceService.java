@@ -1,4 +1,4 @@
-    package com.gkev.InvoicingSystem.Service;
+package com.gkev.InvoicingSystem.Service;
 
     import com.gkev.InvoicingSystem.Exceptions.InvalidTransitionException;
     import com.gkev.InvoicingSystem.Exceptions.InvoiceCreationException;
@@ -164,6 +164,19 @@
         return ReactiveSecurityContextHolder.getContext()
                 .map(ctx -> ((UserPrincipal) ctx.getAuthentication().getPrincipal()).getUserId())
                 .flatMap(usersRepo::getUserNoByUserId);
+    }
+
+    private Mono<UUID> currentUserId() {
+        return ReactiveSecurityContextHolder.getContext()
+                .map(ctx -> ((UserPrincipal) ctx.getAuthentication().getPrincipal()).getUserId());
+    }
+
+    public Mono<CustomerDashboardStatsDTO> getMyDashboardStats() {
+        logger.info("Query for customer dashboard stats has started");
+        return currentUserId()
+                .flatMap(invoiceRepo::getMyDashboardStats)
+                .switchIfEmpty(Mono.error(() -> new ResourceNotFound("NOT_FOUND", "customer dashboard stats could not be found")))
+                .doOnSuccess(response -> logger.info("Customer dashboard stats found"));
     }
 
     private InvoicesFilterDTO forCustomer(InvoicesFilterDTO filter, Long customerNo) {

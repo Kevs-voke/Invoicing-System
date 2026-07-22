@@ -26,6 +26,20 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
     )
     Mono<InvoiceDashboardStatsDTO> getInvoiceDashboardStats();
 
+    @Query(
+            """
+                    SELECT
+                                       COUNT(id) AS total_invoices,
+                                       COALESCE(SUM(amount_paid), 0) AS total_paid,
+                                       COALESCE(SUM(total - amount_paid) FILTER (WHERE LOWER(status) IN (LOWER('sent'), LOWER('pending'), LOWER('overdue'))), 0) AS outstanding_balance,
+                                       COUNT(id) FILTER (WHERE LOWER(status) = LOWER('overdue')) AS overdue_invoices
+                                   	FROM invoice
+                                   	WHERE cust_id = :custId;
+
+                    """
+    )
+    Mono<CustomerDashboardStatsDTO> getMyDashboardStats(UUID custId);
+
     @Query("""
             SELECT id
              FROM invoice
