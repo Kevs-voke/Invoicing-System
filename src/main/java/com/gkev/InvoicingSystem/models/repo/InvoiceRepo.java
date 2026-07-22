@@ -250,7 +250,7 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
         UPDATE invoice
         SET status = 'overdue'
         WHERE due_date < CURRENT_DATE
-          AND LOWER(status) = 'pending';
+          AND LOWER(status) IN ('pending', 'sent');
         """)
 Mono<Void> updateStatusPendingOverdue();
 
