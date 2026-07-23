@@ -5,6 +5,7 @@ import com.gkev.InvoicingSystem.Utils.TempPasswordUtils;
 import com.gkev.InvoicingSystem.models.DTO.*;
 import com.gkev.InvoicingSystem.models.Mapper.CusRegMapper;
 import com.gkev.InvoicingSystem.models.Mapper.MeMapper;
+import com.gkev.InvoicingSystem.models.Mapper.ForgotPasswordEmailMapper;
 import com.gkev.InvoicingSystem.models.Mapper.NewAccountEmailMapper;
 import com.gkev.InvoicingSystem.models.entity.RolesEntity;
 import com.gkev.InvoicingSystem.models.entity.UserWithRolesEntity;
@@ -24,6 +25,7 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -44,6 +46,7 @@ public class UserService {
     private final SpringTemplateEngine emailTemplateEngine;
     private final EmailServiceSender emailServiceSender;
     private final NewAccountEmailMapper newAccountEmailMapper;
+    private final ForgotPasswordEmailMapper forgotPasswordEmailMapper;
 
     public Mono<LoginResponseDTO> CustSelfReg(CusRegDTO cusRegDTO) {
         logger.info("Registering new CUSTOMER: {} has started", cusRegDTO.email());
@@ -208,6 +211,37 @@ public class UserService {
             .collectList();
 }
 
+    public Mono<Void> forgotPassword(ForgotPasswordDTO dto) {
+        logger.info("Forgot password requested for email: {}", dto.email());
+        return usersRepo.findByEmail(dto.email())
+                .flatMap(user -> {
+                    String token = UUID.randomUUID().toString();
+                    user.setResetPasswordToken(token);
+                    user.setResetPasswordTokenExpiresAt(LocalDateTime.now().plusHours(1));
+                    return usersRepo.save(user)
+                            .flatMap(savedUser -> sendForgotPasswordEmail(savedUser, token));
+                })
+                .then();
+    }
+
+    public Mono<Void> resetPassword(ResetPasswordDTO dto) {
+        logger.info("Reset password attempt for token: {}", dto.token());
+        return usersRepo.findByResetPasswordToken(dto.token())
+                .switchIfEmpty(Mono.error(() -> new UserException("INVALID_TOKEN", "Invalid or expired reset token")))
+                .flatMap(user -> {
+                    if (user.getResetPasswordTokenExpiresAt() == null || user.getResetPasswordTokenExpiresAt().isBefore(LocalDateTime.now())) {
+                        return Mono.error(() -> new UserException("INVALID_TOKEN", "Invalid or expired reset token"));
+                    }
+                    user.setPassword(passwordEncoder.encode(dto.newPassword()));
+                    user.setMustChangePassword(false);
+                    user.setResetPasswordToken(null);
+                    user.setResetPasswordTokenExpiresAt(null);
+                    return usersRepo.save(user);
+                })
+                .doOnSuccess(saved -> logger.info("Password successfully reset for user: {}", saved.getEmail()))
+                .then();
+    }
+
     public Mono<Void> changePassword(UUID userId, ChangePasswordDTO dto) {
         logger.info("Password change attempt for user: {}", userId);
         return usersRepo.findById(userId)
@@ -223,6 +257,17 @@ public class UserService {
                 })
                 .doOnSuccess(saved -> logger.info("Password successfully changed for user: {}", userId))
                 .then();
+    }
+
+    private Mono<Void> sendForgotPasswordEmail(UsersEntity user, String token) {
+        var context = forgotPasswordEmailMapper.setData(user.getFirstName(), user.getEmail(), token);
+        String html = emailTemplateEngine.process("ForgotPasswordEmail", context);
+        EmailMessage message = new EmailMessage(
+                user.getEmail(),
+                "Reset your ImaraBill password",
+                html
+        );
+        return emailServiceSender.sendEmail(message);
     }
 
     public Mono<MeDTO> getMe(UUID userId) {

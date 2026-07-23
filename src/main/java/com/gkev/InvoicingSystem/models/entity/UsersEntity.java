@@ -26,11 +26,17 @@
       private String password;
       private Boolean disabled;
 
-      @Column("must_change_password")
-        private Boolean mustChangePassword;
+    @Column("reset_password_token")
+    private String resetPasswordToken;
 
-      @Column("account_non_expired")
-        private Boolean accountNonExpired;
+    @Column("reset_password_token_expires_at")
+    private LocalDateTime resetPasswordTokenExpiresAt;
+
+    @Column("must_change_password")
+    private Boolean mustChangePassword;
+
+    @Column("account_non_expired")
+    private Boolean accountNonExpired;
 
       @Column("account_non_locked")
         private Boolean accountNonLocked;

@@ -3,9 +3,11 @@ package com.gkev.InvoicingSystem.Controller;
 
 import com.gkev.InvoicingSystem.Service.UserService;
 import com.gkev.InvoicingSystem.models.DTO.ChangePasswordDTO;
+import com.gkev.InvoicingSystem.models.DTO.ForgotPasswordDTO;
 import com.gkev.InvoicingSystem.models.DTO.CusRegDTO;
 import com.gkev.InvoicingSystem.models.DTO.LoginReqDTO;
 import com.gkev.InvoicingSystem.models.DTO.LoginResApiDTO;
+import com.gkev.InvoicingSystem.models.DTO.ResetPasswordDTO;
 import com.gkev.InvoicingSystem.models.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +54,18 @@ public class AuthController {
                 );
     }
 
+    @PostMapping("/forgot-password")
+    public Mono<ResponseEntity<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordDTO forgotPasswordDTO) {
+        return userService.forgotPassword(forgotPasswordDTO)
+                .then(Mono.just(ResponseEntity.ok().<Void>build()));
+    }
+
+    @PostMapping("/reset-password")
+    public Mono<ResponseEntity<Void>> resetPassword(@Valid @RequestBody ResetPasswordDTO resetPasswordDTO) {
+        return userService.resetPassword(resetPasswordDTO)
+                .then(Mono.just(ResponseEntity.ok().<Void>build()));
+    }
+
     @PostMapping("/change-password")
     public Mono<ResponseEntity<Void>> changePassword(@Valid @RequestBody ChangePasswordDTO changePasswordDTO,
                                                        Authentication authentication) {
@@ -71,5 +85,3 @@ public class AuthController {
 
     }
 }
-
-

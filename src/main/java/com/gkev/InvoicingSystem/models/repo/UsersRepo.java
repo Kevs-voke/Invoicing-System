@@ -12,6 +12,7 @@ import java.util.UUID;
 
 public interface UsersRepo extends ReactiveCrudRepository<UsersEntity, UUID> {
     Mono<UsersEntity> findByEmail(String email);
+    Mono<UsersEntity> findByResetPasswordToken(String token);
     Mono<Boolean> existsByEmail(String email);
 
    @Query("""
