@@ -22,7 +22,7 @@ public interface InvoiceRepo extends ReactiveCrudRepository<InvoicesEntity, UUID
                                        COUNT(id) FILTER (WHERE LOWER(status) = LOWER('sent')) AS total_sent,
                                        COUNT(id) FILTER (WHERE LOWER(status) IN (LOWER('sent'), LOWER('pending'), LOWER('overdue'))) AS outstanding_invoices,
                                    	COALESCE (SUM((total-amount_paid)) FILTER (WHERE LOWER(status) = LOWER('overdue')), 0) AS amount_overdue,
-                                   	COALESCE (SUM((total - amount_paid)) FILTER (WHERE LOWER(status) IN (LOWER('overdue'), LOWER('pending'))), 0) AS  amount_receivables
+                                   	COALESCE (SUM((total - amount_paid)) FILTER (WHERE LOWER(status) IN (LOWER('sent'), LOWER('overdue'), LOWER('pending'))), 0) AS  amount_receivables
                                    	FROM invoice;
                     
                     """
