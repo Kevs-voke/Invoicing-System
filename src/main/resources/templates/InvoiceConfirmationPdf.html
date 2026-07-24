@@ -24,13 +24,19 @@
             border-radius: 3px;
             margin-bottom: 28px;
         }
-        .invoice-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
+        .invoice-header-table {
+            width: 100%;
+            border-collapse: collapse;
             padding-bottom: 28px;
             margin-bottom: 28px;
             border-bottom: 1px solid #e5e7eb;
+        }
+        .invoice-header-table td {
+            vertical-align: top;
+            padding: 0;
+        }
+        .invoice-header-table td.header-right {
+            width: 260px;
         }
         .brand-name {
             font-size: 24px;
@@ -127,13 +133,14 @@
 
         /* Totals */
         .totals-wrap {
-            display: flex;
-            justify-content: flex-end;
+            width: 100%;
             margin-bottom: 36px;
+            overflow: auto;
         }
         .totals-table {
             width: 320px;
             border-collapse: collapse;
+            float: right;
         }
         .totals-table td {
             padding: 8px 4px;
@@ -175,25 +182,27 @@
     <div class="brand-bar"></div>
 
     <!-- Header -->
-    <div class="invoice-header">
-        <div>
-            <p class="brand-name">ImaraBillers</p>
-            <p class="brand-tagline">Invoicing &amp; payments</p>
-        </div>
-        <div>
-            <p class="invoice-title">INVOICE</p>
-            <table class="invoice-meta">
-                <tr>
-                    <td>Invoice No</td>
-                    <td th:text="${invoiceNo}">INV-0001</td>
-                </tr>
-                <tr>
-                    <td>Due Date</td>
-                    <td th:text="${#temporals.format(dueDate, 'dd MMM yyyy')}">30 Jul 2026</td>
-                </tr>
-            </table>
-        </div>
-    </div>
+    <table class="invoice-header-table">
+        <tr>
+            <td>
+                <p class="brand-name">ImaraBillers</p>
+                <p class="brand-tagline">Invoicing &amp; payments</p>
+            </td>
+            <td class="header-right">
+                <p class="invoice-title">INVOICE</p>
+                <table class="invoice-meta">
+                    <tr>
+                        <td>Invoice No</td>
+                        <td th:text="${invoiceNo}">INV-0001</td>
+                    </tr>
+                    <tr>
+                        <td>Due Date</td>
+                        <td th:text="${#temporals.format(dueDate, 'dd MMM yyyy')}">30 Jul 2026</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
     <!-- Bill to -->
     <div class="bill-to-wrap">
