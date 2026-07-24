@@ -16,7 +16,10 @@ import java.util.List;
         @Bean
         public CorsWebFilter corsWebFilter() {
             CorsConfiguration corsConfig = new CorsConfiguration();
-            corsConfig.setAllowedOrigins(List.of("http://localhost:5173"));
+            corsConfig.setAllowedOrigins(List.of(
+                    "http://localhost:5173",
+                    "https://sme-frontend-3915.onrender.com"
+            ));
             corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE"));
             corsConfig.setAllowedHeaders(List.of("*"));
             corsConfig.setAllowCredentials(true);

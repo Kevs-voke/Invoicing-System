@@ -9,10 +9,10 @@ import java.time.Duration;public final class CookieHeaderBuilderUtils {
     public static HttpHeaders buildCookieHeaders(String token, Duration maxAge) {
         ResponseCookie cookie = ResponseCookie.from("auth_token", token)
                 .httpOnly(true)
-                .secure(false)
+                .secure(true)
                 .path("/")
                 .maxAge(maxAge)
-                .sameSite("Lax")
+                .sameSite("None")
                 .build();
 
         HttpHeaders headers = new HttpHeaders();
