@@ -247,9 +247,12 @@ public class UserService {
         return usersRepo.findById(userId)
                 .switchIfEmpty(Mono.error(() -> new UserException("USER_NOT_FOUND", "User not found")))
                 .flatMap(user -> {
-                    boolean passwordMatches = passwordEncoder.matches(dto.currentPassword(), user.getPassword());
-                    if (!passwordMatches) {
-                        return Mono.error(() -> new UserException("INVALID_CREDENTIALS", "Current password is incorrect"));
+                    boolean isForcedChange = Boolean.TRUE.equals(user.getMustChangePassword());
+                    if (!isForcedChange) {
+                        boolean passwordMatches = passwordEncoder.matches(dto.currentPassword(), user.getPassword());
+                        if (!passwordMatches) {
+                            return Mono.error(() -> new UserException("INVALID_CREDENTIALS", "Current password is incorrect"));
+                        }
                     }
                     user.setPassword(passwordEncoder.encode(dto.newPassword()));
                     user.setMustChangePassword(false);
