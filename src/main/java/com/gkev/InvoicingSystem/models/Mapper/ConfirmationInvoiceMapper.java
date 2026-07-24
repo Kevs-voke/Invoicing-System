@@ -13,6 +13,8 @@ public class ConfirmationInvoiceMapper {
         context.setVariable("totalTax", invoice.totalTax());
         context.setVariable("dueDate", invoice.dueDate());
         context.setVariable("items",invoice.invoiceItems());
+        context.setVariable("customerName", invoice.customerName());
+        context.setVariable("customerEmail", invoice.email());
         return Mono.just(context);
     }
 }

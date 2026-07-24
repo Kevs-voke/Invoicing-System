@@ -18,7 +18,7 @@ import java.util.List;
             CorsConfiguration corsConfig = new CorsConfiguration();
             corsConfig.setAllowedOrigins(List.of(
                     "http://localhost:5173",
-                    "https://sme-frontend-3915.onrender.com"
+                    "https://imarabillers.onrender.com"
             ));
             corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE"));
             corsConfig.setAllowedHeaders(List.of("*"));
