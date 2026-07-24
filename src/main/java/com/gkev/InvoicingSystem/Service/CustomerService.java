@@ -23,12 +23,11 @@ public class CustomerService {
     private final UsersRepo usersRepo;
 
 
-    public Flux<CustomerInvoiceResDTO> findCustomers(CusFilterDTO filter, int page, int size) {
-        logger.info("querying customers records");
-        return customerRepo.findCustomers(filter, page, size )
-                .switchIfEmpty(Mono.error(() -> new ResourceNotFound("NOT_FOUND", " Customers records could not be found")))
-                .doOnComplete(() -> logger.info("customers records found  "));
-    }
+   public Flux<CustomerInvoiceResDTO> findCustomers(CusFilterDTO filter, int page, int size) {
+    logger.info("querying customers records");
+    return customerRepo.findCustomers(filter, page, size )
+            .doOnComplete(() -> logger.info("customers records found  "));
+}
 
     public Mono<CustDashboardStatsDTO> getCustDashboardStats( ){
         logger.info("querying Customer Dashboard Stats");
